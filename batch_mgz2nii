@@ -1,0 +1,7 @@
+
+
+mainDir=""
+
+cd "$mainDir"
+
+for f in sub*/*.mgz; do mri_convert "$f" "${f%.*}.nii"; done

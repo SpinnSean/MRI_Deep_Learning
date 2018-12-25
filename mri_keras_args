@@ -1,0 +1,3 @@
+
+mainDir, data_dir, report_dir, input_str, ext, labelName, covPath, ratios, batch_size, pad_base, createDataset
+/data/Neuroventure/BIDS/derivatives, reports, V1, T1bm, DEM_01_V1, nii, COMPLETE_NEUROVENTURE.csv, [0.75,0.15], 2, 0, True
