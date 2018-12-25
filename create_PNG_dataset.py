@@ -2,7 +2,7 @@ import os
 from PIL import Image
 from pathlib import Path
 import numpy as np
-from helpers import nii2Numpy, updateSubjectDf
+from helpers import nii2Numpy, updateSubjectDf, normalize
 from image_transformations import *
 
 
@@ -50,6 +50,7 @@ def create_PNG_dataset(imagePaths, augmentation=True, max_theta=60):
                 # if picture already exists, remove it first
                 if pathOut.exists(): safely_remove_file(pathOut)
 
+                slice2D = normalize(slice2D)
                 # if sum of pixels is 0, skip slice
                 if slice2D.sum() == 0:
                     continue

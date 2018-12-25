@@ -52,8 +52,22 @@ def updateSubjectDf(newImg,path):
     imagesDf = imagesDf.append(subjData, ignore_index=True)
     imagesDf.to_csv(dfPath)
 
-def normalize():
-    pass
+def normalize(A):
+    '''
+    performs a simple normalization from 0 to 1 of a numpy array. checks that the image is not a uniform value first
+    args
+        A -- numpy array
+    returns
+        numpy array (either A or normalized version of A)
+    '''
+    std_factor=1
+    if np.std(A) > 0 : std_factor=np.std(A)
+    A = (A - np.mean(A)) / std_factor
+
+    scale_factor=np.max(A) - A.min()
+    if  scale_factor == 0: scale_factor = 1
+    A = (A - A.min()) /scale_factor
+    return A
 
 def unitTest1():
     path = '/Volumes/Storage/Work/Data/Neuroventure/sub-002/brainmask.nii'
