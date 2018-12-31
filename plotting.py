@@ -53,22 +53,4 @@ def panelPNG(imgPaths):
             i+=1
 
 
-
-    # for im in images:
-    #     print("y_offset: {}\n x_offset: {}".format(y_offset, x_offset))
-    #     panel.paste(im, (x_offset, y_offset))
-    #
-    #     if i / 100 == 1:
-    #         print("100th")
-    #
-    #     if (i>0) and (i % (panel_size - 1) == 0):
-    #         y_offset += im.size[1]
-    #         x_offset = 0
-    #
-    #
-    #     else:
-    #         x_offset += im.size[0]
-    #
-    #     i+=1
-
     panel.save('/Volumes/Storage/Work/Data/Neuroventure/test.jpg')
