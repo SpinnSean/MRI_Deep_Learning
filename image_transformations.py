@@ -29,6 +29,99 @@ def rotate3D(img,max_theta):
 
     return imgRotated
 
+def findMax(boundingBox):
+    maxWidth = boundingBox[0]['Width']
+    maxHeight = boundingBox[0]['Height']
+    for imgBox in boundingBox:
+        if imgBox['Width'] > maxWidth:
+            maxWidth = imgBox['Width']
+
+        if imgBox['Height'] > maxHeight:
+            maxHeigt = imgBox['Height']
+
+    return maxWidth, maxHeight
+
+def findCoords(boundingBox, nparts):
+    xStart = 1000
+    xEnd = 0
+    yStart = 1000
+    yEnd = 0
+    for p in range(nparts):
+        imgBox = boundingBox[p]
+        if imgBox['xStart'] < xStart:
+            xStart = imgBox['xStart']
+        if imgBox['yStart'] < yStart:
+            yStart = imgBox['yStart']
+        if imgBox['xEnd'] > xEnd:
+            xEnd = imgBox['xEnd']
+        if imgBox['yEnd'] > yEnd:
+            yEnd = imgBox['yEnd']
+    return xStart, xEnd, yStart, yEnd
+
+
+
+def crop(imgMat):
+    nrow, ncol, ndepth, nparts = imgMat.shape
+    firstLitPix = False
+    boundingBox = []
+    [boundingBox.append({'yStart': [0,0],
+                    'yEnd': [0,0],
+                    'xStart': [0, 0],
+                    'xEnd': [0, 0],
+                    'Width': 0,
+                    'Height': 0}) for n in range(nparts)]
+    maxHeight = 0
+    maxWidth = 0
+    for p in range(nparts):
+
+        # yStart
+        for r in range(nrow):
+            s = imgMat[r,:,:,p].sum()
+            if s != 0:
+                boundingBox[p]['yStart'] = r
+                break
+        # yEnd
+        for r in reversed(range(nrow)):
+            s = imgMat[r,:,:,p].sum()
+            if s != 0:
+                boundingBox[p]['yEnd'] = r
+                break
+        # xStart
+        for c in range(ncol):
+            s = imgMat[:,:,c,p].sum()
+            if s != 0:
+                boundingBox[p]['xStart'] = c
+                break
+
+        # xEnd
+        for c in reversed(range(ncol)):
+            s = imgMat[:,:,c,p].sum()
+            if s != 0:
+                boundingBox[p]['xEnd'] = c
+                break
+
+        boundingBox[p]['Width'] = boundingBox[p]['xEnd'] - boundingBox[p]['xStart']
+        boundingBox[p]['Height'] = boundingBox[p]['yEnd'] - boundingBox[p]['yStart']
+
+    maxWidth, maxHeight = findMax(boundingBox)
+    xStart, xEnd, yStart, yEnd = findCoords(boundingBox,nparts)
+    sideLength = max(maxWidth, maxHeight)
+
+    newImgMat = np.empty((sideLength,ndepth,sideLength,nparts))
+    for p in range(nparts):
+        newImgMat[:,:,:,p] = imgMat[xStart:sideLength+xStart,:,yStart:sideLength+yStart,p]
+
+    return newImgMat
+
+
+
+
+
+
+
+
+
+
 
 def unitTest1():
     path = '/Volumes/Storage/Work/Data/Neuroventure/sub-002/brainmask.nii'
