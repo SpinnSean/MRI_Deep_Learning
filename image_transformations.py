@@ -111,7 +111,7 @@ def crop(imgMat):
     for p in range(nparts):
         newImgMat[:,:,:,p] = imgMat[xStart:sideLength+xStart,:,yStart:sideLength+yStart,p]
 
-    return newImgMat
+    return [newImgMat, [sideLength, sideLength]]
 
 
 

@@ -2,7 +2,7 @@ import os
 from PIL import Image
 from pathlib import Path
 import numpy as np
-from helpers import nii2Numpy, updateSubjectDf, normalize
+from helpers import *
 from plotting import panelPNG
 from image_transformations import *
 
@@ -25,7 +25,7 @@ def create_png(img, pathOut):
 
     PIL_img.save(pathOut)
 
-def create_PNG_dataset(imagePaths, augmentation=True, max_theta=60):
+def create_PNG_dataset(imagePaths, augmentation=False, max_theta=60, axes=[1]):
 
     imgArrays = nii2Numpy(imagePaths)
 
@@ -38,30 +38,42 @@ def create_PNG_dataset(imagePaths, augmentation=True, max_theta=60):
            # updateSubjectDf(augmentedImg,augmentedPath)
 
     imgArrays = nii2Numpy(imagePaths)
-    imgArrays = crop(imgArrays)
+    #[imgArrays, PNG_DIM] = crop(imgArrays)
+    PNG_DIM=[256,256]
 
     for subjectImage, path in zip(np.rollaxis(imgArrays,3), imagePaths):
         path = Path(path)
         print("Processing {}".format(path.parents[0].parts[-1]))
-        k=1
+        btRatioVec = brainTissueRatioVec(subjectImage)
         subPaths = []
-        for slice2D in np.rollaxis(subjectImage,1):
-            pathOut = path.parent / 'png' / 'slice_{:03d}.png'.format(k)
+        numImgs = []
+        for j in axes:
+            k = 0
+            for slice2D in np.rollaxis(subjectImage,j):
+                pathOut = path.parent / 'png' / 'slice_{:03d}_p{}.png'.format(k,j)
 
-            # if picture already exists, remove it first
-            if pathOut.exists(): safely_remove_file(pathOut)
+                # if picture already exists, remove it firsts
+                if pathOut.exists(): safely_remove_file(pathOut)
 
-            slice2D = normalize(slice2D)
-            # if sum of pixels is 0, skip slice
-            if slice2D.sum() == 0:
-               continue
+                #slice2D = normalize(slice2D)
+                # if sum of pixels is 0, skip slice
+                #if (slice2D.sum() == 0) or (k % 2 == 0):
+                 #   k += 1
+                 #   continue
 
-            create_png(slice2D,pathOut)
-            subPaths.append(pathOut)
-            print("Creating 2D slice number: {:03d}".format(k))
-            k+=1
+                create_png(slice2D,pathOut)
+                subPaths.append(pathOut)
+                print("Creating 2D slice number: {:03d}".format(k))
+                k+=1
 
-        panelPNG(subPaths)
+            numImgs.append(k)
+
+    NUM_IMG = validateNumImg(numImgs)
+
+    return NUM_IMG, PNG_DIM
+
+
+        #panelPNG(subPaths)
 
 
 def unitTest1():
@@ -70,4 +82,4 @@ def unitTest1():
     create_PNG_dataset(imagePaths,augmentation=False)
     print("unitTest1 is finished.")
 
-unitTest1()
+#unitTest1()

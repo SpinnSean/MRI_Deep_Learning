@@ -16,12 +16,62 @@ def sideBySide(img1,img2, grey=False):
 
 
 
+# def panelPNG(imgPaths):
+#     images = [Image.open(str(p)).convert('L') for p in imgPaths]
+#     imagesCopy = [im.copy() for im in images]
+#     imagesList = [im for im in imagesCopy]
+#     numImages = len(imagesList)
+#     panel_size = np.sqrt(numImages)
+#     #panel_size = np.floor(np.sqrt(numImages)) + 1
+#
+#     widths, heights = zip(*(i.size for i in imagesList))
+#     total_width = sum(widths)
+#     total_height = sum(heights)
+#
+#     imagesWidth, imagesHeight = images[0].size
+#
+#
+#     panel = Image.new('L', (int(panel_size*max(widths)), int(panel_size*max(heights))))
+#
+#     x_offset = 0
+#     y_offset = 0
+#     i = 0
+#
+#     while :
+#         for y in range(0, int(panel_size*max(heights)), max(heights)):
+#             for x in range(0, int(panel_size*max(widths)), max(widths)):
+#                 #print(left, top)
+#                 im = Image.open(str(imgPaths[i]))
+#                 print("Img size: {}".format(im.size))
+#                 #panel.paste(im, (x_offset, y_offset))
+#                 panel.paste(im, (y, x))
+#
+#                 # if (i>0) and (i % panel_size == 0):
+#                 #     y_offset += images[i].size[1]
+#                 #     x_offset = 0
+#                 #
+#                 #
+#                 # else:
+#                 #     x_offset += images[i].size[0]
+#
+#                 #if i == 470:
+#                  #   l=i
+#                 i+=1
+#                 print(i)
+#                 if i == len(imgPaths):
+#
+#
+#
+#     panel.save('/Volumes/Storage/Work/Data/Neuroventure/test.jpg')
+
+
 def panelPNG(imgPaths):
     images = [Image.open(str(p)).convert('L') for p in imgPaths]
     imagesCopy = [im.copy() for im in images]
     imagesList = [im for im in imagesCopy]
     numImages = len(imagesList)
-    panel_size = np.sqrt(numImages)
+    #panel_size = np.sqrt(numImages)
+    panel_size = np.floor(np.sqrt(numImages)) + 1
 
     widths, heights = zip(*(i.size for i in imagesList))
     total_width = sum(widths)
@@ -29,28 +79,21 @@ def panelPNG(imgPaths):
 
     imagesWidth, imagesHeight = images[0].size
 
-
-    panel = Image.new('L', (int(panel_size*widths[0]), int(panel_size*heights[0])))
+    panel = Image.new('L', (int(panel_size * max(widths)), int(panel_size * max(heights))))
 
     x_offset = 0
     y_offset = 0
     i = 0
 
-    for left in range(0, int(panel_size*widths[0]), widths[0]):
-        for top in range(0, int(panel_size*heights[0]), heights[0]):
-            print(left, top)
-            im = Image.open(str(imgPaths[i]))
-            panel.paste(im, (x_offset, y_offset))
+    for i in range(len(imgPaths)):
+        im = Image.open(str(imgPaths[i]))
+        panel.paste(im, (x_offset, y_offset))
+        if (i > 0) and (i % panel_size == 0):
+            y_offset += max(heights)
+            x_offset = 0
 
-            if (i>0) and (i % panel_size == 0):
-                y_offset += images[i].size[1]
-                x_offset = 0
-
-
-            else:
-                x_offset += images[i].size[0]
-
-            i+=1
+        else:
+            x_offset += max(widths)
 
 
     panel.save('/Volumes/Storage/Work/Data/Neuroventure/test.jpg')

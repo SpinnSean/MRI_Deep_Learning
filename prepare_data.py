@@ -7,9 +7,7 @@ from helpers import nii2Numpy, normalize
 
 
 def attribute_category(imagesDf, category, labelName, ratio, verbose=1):
-    ''' This function distributes each subject in a 'train' or 'test' category. The 'train' and 'test'
-        categories are assigned so as to make sure that all of the different radiotracers are contained
-        within the 'train' category.
+    ''' This function distributes each subject in a 'train' or 'test' category.
     Args:
         imagesDf (pd.DataFrame): a pd.DataFrame that contains the info of all files
             by subject.
@@ -69,7 +67,7 @@ def count_valid_samples(imagesDf):
 
 
 
-def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, covPath, ratios=[0.75,0.15], batch_size=2, feature_dim=2, pad_base=0):
+def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idColumn, covPath, ratios=[0.75,0.15], batch_size=2, feature_dim=2, pad_base=0):
     # data = {}
     # # Setup file names and imagesDfput directories
     # data["train_x_fn"] = os.path.join(data_dir,'train_x')
@@ -84,9 +82,9 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, covPa
 
     #if images_fn == None: images_fn = os.path.join(report_dir,'images.csv')
 
-    imagesDf = create_data_df(mainDir, input_str, ext, labelName, covPath)
+    imagesDf = create_data_df(mainDir, input_str, ext, labelName, covPath, idColumn)
 
-
+    # fix to make sure enough test/train/validate
     attribute_category(imagesDf, 'train', 'labels', ratios[0])
     attribute_category(imagesDf, 'validate','labels', ratios[1])
     imagesDf.category.loc[ imagesDf.category == "unknown" ] = "test"
