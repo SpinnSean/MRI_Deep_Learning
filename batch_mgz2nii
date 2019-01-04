@@ -1,7 +1,9 @@
 
 
-mainDir=""
+mainDir=$1
+subDir=$2
+fname=$3
 
 cd "$mainDir"
 
-for f in sub*/*.mgz; do mri_convert "$f" "${f%.*}.nii"; done
+for f in sub*/$subDir/$fname; do echo mri_convert "$f" "${f%.*}.nii"; done
