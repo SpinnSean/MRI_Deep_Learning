@@ -22,7 +22,8 @@ def mri_keras(main_dir, data_dir, report_dir, input_str,  ext, labelName, idColu
     data = load_data(main_dir,imagesDf, PNG_DIM, NUM_IMG)
     print("Dataset Loaded.\nDimensions:")
     print(*["{} : {}".format(k, v.shape) for k, v in data.items()], sep="\n")
-    #autoencoder = L1Autoencoder(encDim=25, inShape=125, l1Reg=0.05, loss='mean_squared_error')
+
+    autoencoder = L1Autoencoder(encDim=25, inShape=125, l1Reg=0.05, loss='mean_squared_error')
 
 
 

@@ -6,4 +6,4 @@ fname=$3
 
 cd "$mainDir"
 
-for f in sub*/$subDir/$fname; do echo mri_convert "$f" "${f%.*}.nii"; done
+for f in "$mainDir"/sub-*/"$subDir"/*"$fname"*; do echo mri_convert "$f" "${f%.*}.nii"; done
