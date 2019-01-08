@@ -1,36 +1,106 @@
-from prepare_data import  *
-from helpers import load_data
-from create_PNG_dataset import create_PNG_dataset
-#from keras_models import L1Autoencoder
 import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+from prepare_data import  *
+from helpers import *
+from create_PNG_dataset import create_PNG_dataset
+from keras_models import *
+import tensorflow
+from keras import backend
+from sklearn.model_selection import train_test_split
 import argparse
 from sys import argv, exit
+from glob import glob
+
+session_conf = tensorflow.ConfigProto(intra_op_parallelism_threads=8, inter_op_parallelism_threads=8)
+tensorflow.set_random_seed(1)
+sess = tensorflow.Session(graph=tensorflow.get_default_graph(), config=session_conf)
+keras.backend.set_session(sess)
+
+def create_dir_verbose(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print("Created directory:", directory)
+    return directory
 
 
+def setup_dirs(target_dir="./"):
+    global data_dir
+    global report_dir
+    global train_dir
+    global test_dir
+    global validate_dir
+    global model_dir
+    data_dir = target_dir + os.sep + 'data' + os.sep
+    report_dir = target_dir + os.sep + 'report' + os.sep
+    train_dir = target_dir + os.sep + 'predict' + os.sep + 'train' + os.sep
+    test_dir = target_dir + os.sep + 'predict' + os.sep + 'test' + os.sep
+    validate_dir = target_dir + os.sep + 'predict' + os.sep + 'validate' + os.sep
+    model_dir = target_dir + os.sep + 'model'
+    create_dir_verbose(train_dir)
+    create_dir_verbose(test_dir)
+    create_dir_verbose(validate_dir)
+    create_dir_verbose(data_dir)
+    create_dir_verbose(report_dir)
+    create_dir_verbose(model_dir)
+    return 0
 
-def mri_keras(main_dir, data_dir, report_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], batch_size=2, feature_dim=2, pad_base=0, createDataset=True):
 
-    #setup_dirs(target_dir)
-    #global PNG_DIM
-    #global NUM_IMG
+def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='sparse-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False):
 
-    imagesDf = prepare_data(main_dir, data_dir, report_dir, input_str, ext, labelName, idColumn, covPath, ratios, batch_size, feature_dim, pad_base)
+    setup_dirs(target_dir)
+    PNG_DIM=[256,256]
+    NUM_IMG= 256
 
-    if createDataset:
-       NUM_IMG, PNG_DIM = create_PNG_dataset(imagesDf.paths.tolist())
+    imagesDfOut = os.path.join(main_dir,'imagesDf_'+labelName+'.csv')
+    [imagesDf,data] = prepare_data(main_dir, data_dir, report_dir, input_str, ext, labelName, idColumn, covPath, imagesDfOut, ratios)
 
-    data = load_data(main_dir,imagesDf, PNG_DIM, NUM_IMG)
-    print("Dataset Loaded.\nDimensions:")
-    print(*["{} : {}".format(k, v.shape) for k, v in data.items()], sep="\n")
 
-    autoencoder = L1Autoencoder(encDim=25, inShape=125, l1Reg=0.05, loss='mean_squared_error')
+  #  if createPNGDataset:
+   #    NUM_IMG, PNG_DIM = create_PNG_dataset(imagesDf.paths.tolist())
+
+#    data = load_data(main_dir, data_dir, imagesDf, PNG_DIM, NUM_IMG)
+
+    ### 1) Define architecture of neural network
+    Y_validate=np.load(data["y_validate_fn"]+'.npy')
+    nlabels=len(np.unique(Y_validate)) #Number of unique labels in the labeled images
+    model = build_model(data["image_dim"], nlabels,nK, n_dil, kernel_size, drop_out, model_type=model_type, activation_hidden=activation_hidden, activation_output=activation_output, loss=loss, verbose=0)
+    #if make_model_only: return 0
+
+    ### 2) Train network on data
+    model_fn = set_model_name(model_fn, model_dir)
+    history_fn = str(os.path.basename(model_fn).split('.')[0]) + '_history.json'
+
+    print('Model:', model_fn)
+    if not os.path.exists(model_fn):
+        # If model_fn does not exist, or user wishes to write over (clobber) existing model
+        # then train a new model and save it
+        X_train = np.load(data["x_train_fn"] + '.npy')
+        Y_train = np.load(data["y_train_fn"] + '.npy')
+        X_validate = np.load(data["x_validate_fn"] + '.npy')
+        model, history = compile_and_run(model, model_fn, model_type,history_fn, X_train, Y_train, X_validate, Y_validate,
+                                         nb_epoch, nlabels, loss=loss, verbose=1)
+
+        print("Fitting over.")
 
 
 
 def unitTest1():
 
-    mri_keras('/Volumes/Storage/Work/Data/Neuroventure', '' , 'reports', 'brainmask', 'nii', 'DEM_01_Y1', 'Baseline', 'COMPLETE_NEUROVENTURE.csv')
+    #mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', '' , 'reports', 'T1w', 'nii', 'DEM_01_Y1', 'Baseline', 'COMPLETE_NEUROVENTURE.csv')
 
+    # test for the sparse autoencoder
+    # mainDir = '/data/IMAGEN/BIDS/derivatives/BIDS/FU2'
+    # dataDir = 'anat'
+    # imgStr = 'T1w'
+    # ext = 'nii'
+    #
+    # imgPaths = glob.(os.path.join(mainDir,'sub*',dataDir,'*'+imgStr+'*'))
+    # imagesDf = pd.DataFrame({'paths': imgPaths})
+
+
+    mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv')
 
 unitTest1()
 #if __name__ == '__main__':

@@ -1,6 +1,10 @@
+
+import matplotlib
+matplotlib.use('Agg') # used for plotting from remote to local machine
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
+import os, subprocess
 
 def sideBySide(img1,img2, grey=False):
 
@@ -14,7 +18,13 @@ def sideBySide(img1,img2, grey=False):
         plt.subplot(122), plt.imshow(img2), plt.title('Transformed')
         plt.show(block=True)
 
-
+def saveAndOpenPlot(image,imgDir,fname):
+    fullPath = os.path.join(imgDir,fname)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.imshow(image)
+    fig.savefig(fullPath)
+    #subprocess.call(['xdg-open', fullPath])
 
 # def panelPNG(imgPaths):
 #     images = [Image.open(str(p)).convert('L') for p in imgPaths]

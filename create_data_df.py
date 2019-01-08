@@ -9,20 +9,21 @@ import re
 def extractSubjName(path):
     p=Path(path)
     subject = [pp for pp in p.parts if 'sub' in pp]
-    if len(subject) > 1:
-        print("Duplicate participant for " + subject[0])
-        return -1
+    #if len(subject) > 1:
+     #   print("Duplicate participant for " + subject[0])
+     #   return -1
     return subject[0]
 
+# To Do: somehow specify what ids look like, if they have text or not, leading 0, etc.
 def renameSubject(code):
     if code == len(code)*' ':
         return ''
-    num = re.findall(r'_\d+', code)[0][-3:]
-    return 'sub-' + num
+    #num = re.findall(r'_\d+', code)[0][-3:]
+    return 'sub-' + code
 
 
 def create_labels(labelName, mainDir, covPath, idColumn):
-    """
+    """2
     Extracts the covariate which is used as label
     and returns a df with covariate and part name as
     columns.
@@ -31,7 +32,20 @@ def create_labels(labelName, mainDir, covPath, idColumn):
     :param covPath:
     :return: pandas df and label dictionary
     """
-    covDf = pd.read_csv(os.path.join(mainDir,covPath), usecols=[idColumn,labelName])
+    try:
+        covDf = pd.read_csv(os.path.join(mainDir,covPath),
+                            usecols=[idColumn,labelName],
+                            converters={idColumn: lambda x: str(x)})
+
+    except ValueError:
+        covDf = pd.read_csv(os.path.join(mainDir,covPath),
+                            usecols=[idColumn,labelName],
+                            sep=';',
+                            converters={idColumn: lambda x: str(x)},
+                            #dtype='str'
+                            )
+
+
     labels = covDf[labelName].dropna().unique()
 
     if len(labels) > 2:
@@ -42,6 +56,8 @@ def create_labels(labelName, mainDir, covPath, idColumn):
 
     # Replace labels with 0 and 1
     covDf[labelName].replace(labelMapDict,inplace=True)
+    # Remove any NaNs, row-wise
+    covDf.dropna(0, how='any', inplace=True)
 
     # Removing whitespaces, replacing empty strings with NaNs
     covDf[idColumn] = covDf[idColumn].str.strip()
@@ -51,7 +67,7 @@ def create_labels(labelName, mainDir, covPath, idColumn):
 
 
 
-def create_data_df(mainDir, input_str, ext, labelName, covPath, idColumn):
+def create_data_df(mainDir,data_dir, input_str, ext, labelName, covPath, idColumn):
     """
     Creates a dataframe with the participants filepath row by row.
      Assumes BIDS format.
@@ -64,7 +80,7 @@ def create_data_df(mainDir, input_str, ext, labelName, covPath, idColumn):
     :return: pandas df with file names as rows
     """
 
-    imgFiles = glob.glob(os.path.join(mainDir,"*","*"+input_str+"*"+ext))
+    imgFiles = glob.glob(os.path.join(mainDir,"sub*",data_dir,"*"+input_str+"*"+ext))
     dataDf = pd.DataFrame({'paths': imgFiles})
     dataDf[idColumn] = dataDf.paths.map(extractSubjName)
 

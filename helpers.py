@@ -2,13 +2,18 @@ import nibabel as nib
 import numpy as np
 import os
 import re
+import h5py
 from PIL import Image
 import pandas as pd
 from glob import glob
 from pathlib import Path
+from functools import reduce
 
+
+# TODO: fix getAllNums to get all numbers including leading zeros
 def getAllNums(s):
-    nums = re.findall(r'\d+', s)[0]
+    #nums = re.findall(r'\d+', s)[0]
+    nums = re.findall(r'\d+', s)[1]
     return nums
 
 
@@ -47,7 +52,10 @@ def nii2Numpy(imagePaths):
     dims = validateDims(images)
     numpyImages = np.zeros( (dims + (len(images),)) )
 
+
+    total = len(images)
     for i, img in enumerate(images):
+        #print("Loading images: {}% complete.".format(100*round(i/total,2)))
         numpyImages[:,:,:,i] = img['data'].get_fdata()
 
     return numpyImages
@@ -92,47 +100,130 @@ def brainTissueRatioVec(vol3D,axis=1):
 
     return btRatioList
 
+def saveDataset(mainDir,dataDict):
+    fname=os.path.join(mainDir,'trainTestValDataset.hdf5')
+    if os.path.exists(fname):
+        print("Saved dataset already exists. Loading from file {}...".format(fname))
+        return loadDataFromFile(mainDir)
 
-def load_data(mainDir, imagesDf, PNG_DIM, NUM_IMG):
+    f = h5py.File(fname, 'a')
+    grp = f.create_group('data')
+    for k,v in dataDict.items():
+        print('Saving {}...'.format(k))
+        grp.create_dataset(k, data=v)
+    f.close()
+    print("Dataset saved at {}".format(fname))
 
-    niiPaths = imagesDf.paths.tolist()
-    allPNGs = np.empty((len(niiPaths), NUM_IMG, PNG_DIM[0], PNG_DIM[1]))
+def loadDataFromFile(mainDir):
+    fname = os.path.join(mainDir,'trainTestValDataset.hdf5')
+    if not os.path.exists(fname):
+        print("Saved dataset does not exist. Run mri_keras again, with the createDataset parameter set to true.")
+        raise SystemExit
+    f = h5py.File(fname,'r')
+    dataDict = {'x_train': f['data/x_train']}
 
-    for n, p in enumerate(niiPaths):
-        subNum = getAllNums(p)
-        path2PNG = glob(os.path.join(mainDir,'sub-'+subNum, 'png', '*.png'))
-        path2PNG.sort()
+    f.close()
 
-        for i, png in enumerate(path2PNG):
-            try:
-                img = Image.open(png).convert('L')
-                allPNGs[n,i,:,:] = np.array(img)
 
-            except Exception as e:
-                print('Problem loading sub-{} PNGs.\n Path: {}\n Img size: {}\nError: {}'.format(subNum,png,img.size,e))
 
-    train_ind = imagesDf.index[imagesDf.category == 'train']
-    test_ind = imagesDf.index[imagesDf.category == 'test']
-    val_ind = imagesDf.index[imagesDf.category == 'validate']
+def load_data(mainDir, data_dir, imagesDf, PNG_DIM, NUM_IMG, fromFile=False):
 
-    if len(train_ind) + len(test_ind) + len(val_ind) != allPNGs.shape[0]:
-        print("Problem with train/test/val split.")
-        return -1
+    if fromFile:
+        dataDict = loadDataFromFile(mainDir)
 
-    x_train = allPNGs[train_ind,:,:,:]
-    x_val = allPNGs[val_ind,:,:,:]
-    x_test = allPNGs[test_ind,:,:,:]
+    else:
 
-    y_train = imagesDf.labels[train_ind].values
-    y_val = imagesDf.labels[val_ind].values
-    y_test = imagesDf.labels[test_ind].values
+        niiPaths = imagesDf.paths.tolist()
+        allPNGs = np.empty((len(niiPaths), NUM_IMG, PNG_DIM[0], PNG_DIM[1]))
 
-    return {'x_train': x_train,
-            'x_val': x_val,
-            'x_test': x_test,
-            'y_train': y_train,
-            'y_val': y_val,
-            'y_test': y_test}
+        total=len(niiPaths)
+        for n, p in enumerate(niiPaths):
+            print("Loading PNGs into arrays: {}% completed.".format(100*round(n/total,2)))
+            subNum = getAllNums(p)
+            path2PNG = glob(os.path.join(mainDir,'sub-'+subNum, data_dir, 'png', '*.png'))
+            path2PNG.sort()
+
+            for i, png in enumerate(path2PNG):
+                try:
+                    img = Image.open(png).convert('L')
+                    allPNGs[n,i,:,:] = np.array(img)
+
+                except Exception as e:
+                    print('Problem loading sub-{} PNGs.\n Path: {}\n Img size: {}\nError: {}'.format(subNum,png,img.size,e))
+
+        train_ind = imagesDf.index[imagesDf.category == 'train']
+        test_ind = imagesDf.index[imagesDf.category == 'test']
+        val_ind = imagesDf.index[imagesDf.category == 'validate']
+
+        if len(train_ind) + len(test_ind) + len(val_ind) != allPNGs.shape[0]:
+            print("Problem with train/test/val split.")
+            return -1
+
+        x_train = allPNGs[train_ind,:,:,:]
+        x_val = allPNGs[val_ind,:,:,:]
+        x_test = allPNGs[test_ind,:,:,:]
+
+        y_train = imagesDf.labels[train_ind].values
+        y_val = imagesDf.labels[val_ind].values
+        y_test = imagesDf.labels[test_ind].values
+
+        dataDict = {'x_train': x_train,
+                    'x_val': x_val,
+                    'x_test': x_test,
+                    'y_train': y_train,
+                    'y_val': y_val,
+                    'y_test': y_test}
+
+        saveDataset(mainDir,dataDict)
+
+    return dataDict
+
+
+def subsetImages(images, axis=1, start=0, end=None):
+
+    if end is None:
+        end = images.shape[-1]
+
+    if axis == 0:
+        A = images[:,start:end,:,:]
+    elif axis == 1:
+        A = images[:,:,start:end,:]
+    elif axis == 2:
+        A = images[:,:,:,start:end]
+
+    return  A
+
+def set_model_name(filename, target_dir, ext='.hdf5'):
+    '''function to set default model name'''
+    return  os.path.join(target_dir, os.path.splitext(os.path.basename(filename))[0]+ext)
+
+
+def shuffled_index(A,B, dims, random_state):
+    if A.shape[dims[0]] != B.shape[dims[1]]:
+        exit(0)
+
+    p = np.random.permutation(range(A.shape[dims[0]]))
+
+    return p
+
+
+def extractMostInfSlice(A,dim=256):
+
+    prev = 0
+    indices=[]
+    for x in range(dim-1, A.shape[0], dim):
+        subImage = A[prev:x,:,:]
+        maxSum = -np.inf
+        for ind,slice in enumerate(np.rollaxis(subImage,0)):
+            if slice.sum() >= maxSum:
+                maxSum = slice.sum()
+                mostInfSlice = ind
+
+        indices.append(prev+mostInfSlice)
+        prev = x
+
+    return indices
+
 
 
 

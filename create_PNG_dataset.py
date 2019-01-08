@@ -27,53 +27,61 @@ def create_png(img, pathOut):
 
 def create_PNG_dataset(imagePaths, augmentation=False, max_theta=60, axes=[1]):
 
-    imgArrays = nii2Numpy(imagePaths)
+    batch_size=25
+    N = len(imagePaths)
+    prev=0
+    numImgs = []
+    for b,k in enumerate(range(batch_size,N,batch_size)):
+        print("PNG dataset creation: batch {} out of {}.".format(b,batch_size))
+        imagePathsBatch = imagePaths[prev:k]
+        imgArrays = nii2Numpy(imagePathsBatch)
 
-    if augmentation:
-        for subjectImage, path in zip(np.rollaxis(imgArrays,3), imagePaths):
+        if augmentation:
+            for subjectImage, path in zip(np.rollaxis(imgArrays,3), imagePathsBatch):
+                path = Path(path)
+                print("Processing {}".format(path.parents[0].parts[-2]))
+                augmentedImg = rotate3D(subjectImage, max_theta)
+                augmentedPath =  Path(str(path.parents[0]) + 'a')
+               # updateSubjectDf(augmentedImg,augmentedPath)
+
+        #imgArrays = nii2Numpy(imagePaths)
+        [imgArrays, PNG_DIM] = crop(imgArrays)
+        PNG_DIM=[256,256]
+
+        for subjectImage, path in zip(np.rollaxis(imgArrays,3), imagePathsBatch):
             path = Path(path)
-            print("Processing {}".format(path.parents[0].parts[-1]))
-            augmentedImg = rotate3D(subjectImage, max_theta)
-            augmentedPath =  Path(str(path.parents[0]) + 'a')
-           # updateSubjectDf(augmentedImg,augmentedPath)
+            print("Processing {}".format(path.parents[0].parts[-2]))
+            #btRatioVec = brainTissueRatioVec(subjectImage)
+            subPaths = []
+            for j in axes:
+                kk = 0
+                for slice2D in np.rollaxis(subjectImage,j):
+                    pathOut = path.parent / 'png' / 'slice_{:03d}_p{}.png'.format(kk,j)
 
-    imgArrays = nii2Numpy(imagePaths)
-    #[imgArrays, PNG_DIM] = crop(imgArrays)
-    PNG_DIM=[256,256]
+                    # if picture already exists, remove it firsts
+                    if pathOut.exists(): safely_remove_file(pathOut)
 
-    for subjectImage, path in zip(np.rollaxis(imgArrays,3), imagePaths):
-        path = Path(path)
-        print("Processing {}".format(path.parents[0].parts[-1]))
-        btRatioVec = brainTissueRatioVec(subjectImage)
-        subPaths = []
-        numImgs = []
-        for j in axes:
-            k = 0
-            for slice2D in np.rollaxis(subjectImage,j):
-                pathOut = path.parent / 'png' / 'slice_{:03d}_p{}.png'.format(k,j)
+                    #slice2D = normalize(slice2D)
+                    # if sum of pixels is 0, skip slice
+                    #if (slice2D.sum() == 0) or (k % 2 == 0):
+                     #   k += 1
+                     #   continue
 
-                # if picture already exists, remove it firsts
-                if pathOut.exists(): safely_remove_file(pathOut)
+                    create_png(slice2D,pathOut)
+                    subPaths.append(pathOut)
+                    print("Creating 2D slice number: {:03d}".format(kk))
+                    kk+=1
 
-                #slice2D = normalize(slice2D)
-                # if sum of pixels is 0, skip slice
-                #if (slice2D.sum() == 0) or (k % 2 == 0):
-                 #   k += 1
-                 #   continue
-
-                create_png(slice2D,pathOut)
-                subPaths.append(pathOut)
-                print("Creating 2D slice number: {:03d}".format(k))
-                k+=1
-
-            numImgs.append(k)
+                numImgs.append(kk)
+            #panelPNG(subPaths)
+        prev=k
 
     NUM_IMG = validateNumImg(numImgs)
 
     return NUM_IMG, PNG_DIM
 
 
-        #panelPNG(subPaths)
+
 
 
 def unitTest1():
