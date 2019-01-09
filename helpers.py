@@ -9,6 +9,11 @@ from glob import glob
 from pathlib import Path
 from functools import reduce
 
+def readParameters(path2Args):
+    args = pd.read_csv('mri_keras_args', header=None, sep=';')
+    args_dict = dict(zip(args[0], args[1]))
+    return args_dict
+
 
 # TODO: fix getAllNums to get all numbers including leading zeros
 def getAllNums(s):

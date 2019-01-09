@@ -129,6 +129,12 @@ def unitTest1():
     mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv',ratios=[0.75,0.15], createPNGDataset=False, batch_size=256, nb_epoch=50, images_to_predict=None, clobber=False, model_fn='autoencoder2.hdf5')
 
 unitTest1()
+
+
+if __name__ == '__main__':
+    params = readParameters('mri_keras_args')
+    mri_keras(**params)
+
 #if __name__ == '__main__':
     # parser = argparse.ArgumentParser(description='Process some integers.')
     # parser.add_argument('--batch-size', dest='batch_size', type=int, default=1, help='size of batch')
