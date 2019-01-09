@@ -1,6 +1,6 @@
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+#os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 from prepare_data import  *
 from helpers import *
@@ -13,7 +13,7 @@ import argparse
 from sys import argv, exit
 from glob import glob
 
-session_conf = tensorflow.ConfigProto(intra_op_parallelism_threads=8, inter_op_parallelism_threads=8)
+session_conf = tensorflow.ConfigProto(intra_op_parallelism_threads=0, inter_op_parallelism_threads=0)
 tensorflow.set_random_seed(1)
 sess = tensorflow.Session(graph=tensorflow.get_default_graph(), config=session_conf)
 keras.backend.set_session(sess)
@@ -65,7 +65,12 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
     Y_validate=np.load(data["y_validate_fn"]+'.npy')
     nlabels=len(np.unique(Y_validate)) #Number of unique labels in the labeled images
     model = build_model(data["image_dim"], nlabels,nK, n_dil, kernel_size, drop_out, model_type=model_type, activation_hidden=activation_hidden, activation_output=activation_output, loss=loss, verbose=0)
-    #if make_model_only: return 0
+    if make_model_only: return 0
+    memRequired = get_model_memory_usage(batch_size, model)
+    if memRequired > 12.0:
+        print("Required memory: {}\nAvailable memory: {}\nTry reducing the batch size.".format(memRequired,12.0))
+        exit(0)
+
 
     ### 2) Train network on data
     model_fn = set_model_name(model_fn, model_dir)
