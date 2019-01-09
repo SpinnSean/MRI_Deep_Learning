@@ -27,7 +27,8 @@ def readParameters(path2Args):
                    'drop_out',
                    'pad_base',
                    'verbose',
-                   'make_model_only']
+                   'make_model_only',
+                   'nGPU']
     for arg in nonStrTypes:
         args_dict[arg] = ast.literal_eval(args_dict[arg])
 

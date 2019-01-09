@@ -6,16 +6,17 @@ from prepare_data import  *
 from helpers import *
 from create_PNG_dataset import create_PNG_dataset
 from keras_models import *
-import tensorflow
+import tensorflow as tf
 from keras import backend
+from keras.utils.training_utils import multi_gpu_model
 from sklearn.model_selection import train_test_split
 import argparse
 from sys import argv, exit
 from glob import glob
 
-session_conf = tensorflow.ConfigProto(intra_op_parallelism_threads=0, inter_op_parallelism_threads=0)
-tensorflow.set_random_seed(1)
-sess = tensorflow.Session(graph=tensorflow.get_default_graph(), config=session_conf)
+session_conf = tf.ConfigProto(intra_op_parallelism_threads=0, inter_op_parallelism_threads=0)
+tf.set_random_seed(1)
+sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
 keras.backend.set_session(sess)
 
 def create_dir_verbose(directory):
@@ -47,7 +48,7 @@ def setup_dirs(target_dir="./"):
     return 0
 
 
-def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False):
+def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False,nGPU=1):
 
     setup_dirs(target_dir)
     #PNG_DIM=[256,256]
@@ -64,8 +65,26 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
     ### 1) Define architecture of neural network
     Y_validate=np.load(data["y_validate_fn"]+'.npy')
     nlabels=len(np.unique(Y_validate)) #Number of unique labels in the labeled images
-    model = build_model(data["image_dim"], nlabels,nK, n_dil, kernel_size, drop_out, model_type=model_type, activation_hidden=activation_hidden, activation_output=activation_output, loss=loss, verbose=0)
-    if make_model_only: return 0
+
+    if nGPU <= 1:
+        print("[INFO] training with 1 GPU...")
+        model = build_model(data["image_dim"], nlabels, nK, n_dil, kernel_size, drop_out, model_type=model_type,
+                            activation_hidden=activation_hidden, activation_output=activation_output, loss=loss,
+                            verbose=0)
+        if make_model_only: return 0
+    else:
+        print("[INFO] training with {} GPUs...".format(nGPU))
+
+        # we'll store a copy of the model on *every* GPU and then combine
+        # the results from the gradient updates on the CPU
+        with tf.device("/cpu:0"):
+            # initialize the model
+            model = build_model(data["image_dim"], nlabels, nK, n_dil, kernel_size, drop_out, model_type=model_type,
+                                activation_hidden=activation_hidden, activation_output=activation_output, loss=loss,
+                                verbose=0)
+        model = multi_gpu_model(model, gpus=nGPU)
+
+
     memRequired = get_model_memory_usage(batch_size, model)
     if memRequired > 12.0:
         print("Required memory: {}\nAvailable memory: {}\nTry reducing the batch size.".format(memRequired,12.0))

@@ -165,7 +165,7 @@ def create_hd5(imagesDf,data,hdf5_path,cropping=False):
                     offset2 = sideLength - img.shape[1]
                     img= np.pad(img,((0,offset1),(0, offset2)), "constant")
 
-                img = np.reshape(img,(list(img.shape) + [1]))
+            img = np.reshape(img,(list(img.shape) + [1]))
 
             hdf5_f[row.category + "_img"][(total_index[row.category])] = img
             hdf5_f[row.category + "_labels"][(total_index[row.category])] = labels[j]

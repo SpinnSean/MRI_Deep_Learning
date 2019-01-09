@@ -27,3 +27,4 @@ metric;categorical_accuracy
 pad_base;0
 verbose;1
 make_model_only;False
+nGPU;4
