@@ -114,21 +114,8 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
 
 def unitTest1():
 
-    #mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', '' , 'reports', 'T1w', 'nii', 'DEM_01_Y1', 'Baseline', 'COMPLETE_NEUROVENTURE.csv')
-
-    # test for the sparse autoencoder
-    # mainDir = '/data/IMAGEN/BIDS/derivatives/BIDS/FU2'
-    # dataDir = 'anat'
-    # imgStr = 'T1w'
-    # ext = 'nii'
-    #
-    # imgPaths = glob.(os.path.join(mainDir,'sub*',dataDir,'*'+imgStr+'*'))
-    # imagesDf = pd.DataFrame({'paths': imgPaths})
-
-
     mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv',ratios=[0.75,0.15], createPNGDataset=False, batch_size=256, nb_epoch=50, images_to_predict=None, clobber=False, model_fn='autoencoder2.hdf5')
 
-unitTest1()
 
 
 if __name__ == '__main__':
