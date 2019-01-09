@@ -138,7 +138,7 @@ def base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_
 
 
 def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type, activation_hidden, activation_output, loss, verbose=0):
-    if model_type == 'sparse-autoencoder':
+    if model_type == 'cnn-autoencoder':
        # model = sparse_autoencoder(image_dim, kernel_size, activation_hidden, loss)
        model = cnn_autoencoder(image_dim)
     elif model_type == 'base':
@@ -146,28 +146,20 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
 
     return model
 
-def compile_and_run(mainDir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005):
-
-    # shuffle data
-    # newInd = shuffled_index(X_train,Y_train, dims= [2,0], random_state=0)
-    # X_train = X_train[:,:,newInd,:,:]
-    # Y_train = Y_train[newInd,:]
-    #
-    # newInd = shuffled_index(X_validate,Y_validate, dims= [2,0], random_state=0)
-    # X_validate = X_validate[:,:,newInd,:,:]
-    # Y_validate = Y_validate[newInd,:]
+def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005):
 
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
 
     #set checkpoint filename
-    checkpoint_fn = str(os.path.join(mainDir,'processed', 'model', str(os.path.basename(model_name).split('.')[0]) +"_checkpoint-{epoch:02d}-{val_loss:.2f}.hdf5"))
+    checkpoint_fn = str(os.path.join(target_dir, 'model', str(os.path.basename(model_name).split('.')[0]) +"_checkpoint-{epoch:02d}-{val_loss:.2f}.hdf5"))
 
     #create checkpoint callback for model
     checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_loss', verbose=0, save_best_only=True, mode='max')
 
     #compile the model
     #model.compile(loss = , optimizer=ada, metrics=[metric])
+    print("Compiling model {}...".format(model_name))
     model.compile(loss='mean_squared_error', optimizer = RMSprop())
 
 
@@ -176,28 +168,17 @@ def compile_and_run(mainDir, model, model_name, model_type, history_fn, X_train,
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 
-    # Added section for training single slice autoencoder.
+    print("Training size: {}\n Validation size: {}\n".format(X_train.shape, X_validate.shape))
 
-    if 'autoencoder' in model_type:
-        X_train = X_train[extractMostInfSlice(X_train)]
-        X_validate = X_validate[extractMostInfSlice(X_validate)]
-        X_train = X_train.astype('float32')
-        X_validate = X_validate.astype('float32')
+    # train model
+    history = model.fit(X_train,
+                        X_train,
+                        validation_data=(X_validate, X_validate),
+                        epochs=nb_epoch,
+                        batch_size=batch_size,
+                        callbacks=[checkpoint])
 
-        # temporary cropping section
-
-
-        history = model.fit(X_train,
-                            X_train,
-                            validation_data=(X_validate, X_validate),
-                            epochs=nb_epoch,
-                            batch_size=batch_size,
-                            callbacks=[checkpoint])
-
-    else:
-        history = model.fit([X_train], Y_train,  validation_data=([X_validate], Y_validate), epochs = nb_epoch, callbacks=[ checkpoint])
-
-    #save model
+    # save model
     model.save(model_name)
 
     with open(history_fn, 'w+') as fp: json.dump(history.history, fp)

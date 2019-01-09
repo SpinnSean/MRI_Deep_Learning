@@ -17,6 +17,18 @@ def getAllNums(s):
     return nums
 
 
+def quickShuffle(A):
+    """
+    Shuffles along the first dimention of an nD array
+
+    :param A: ndarray
+    :return: shuffled ndarray
+    """
+    perm = np.arange(A.shape[0])
+    np.random.shuffle(perm)
+    A = A[perm]
+    return A
+
 
 def validateDims(images):
     """
@@ -226,7 +238,22 @@ def extractMostInfSlice(A,dim=256):
 
     return indices
 
+def extractMiddleSlices(A,dim=198):
 
+    # the numbers 115 and 190 are approximate bounds for
+    # the middle of the brain on a 256 resolution
+    L = int(np.floor(115/256 * (dim-1)))
+    H = int(np.floor(190/256 * (dim-1)))
+
+    prev = 0
+    indices=[]
+    for x in range(dim-1, A.shape[0], dim):
+        lowInd = prev + L
+        highInd = prev + H
+        indices.extend(list(range(lowInd,highInd)))
+        prev=x
+
+    return indices
 
 
 

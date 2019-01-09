@@ -47,7 +47,7 @@ def setup_dirs(target_dir="./"):
     return 0
 
 
-def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='sparse-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False):
+def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False):
 
     setup_dirs(target_dir)
     PNG_DIM=[256,256]
@@ -69,16 +69,29 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
 
     ### 2) Train network on data
     model_fn = set_model_name(model_fn, model_dir)
-    history_fn = str(os.path.join(main_dir,'processed', 'model', str(os.path.basename(model_fn).split('.')[0]) + '_history.json'))
+    history_fn = str(os.path.join(target_dir, 'model', str(os.path.basename(model_fn).split('.')[0]) + '_history.json'))
 
     print('Model:', model_fn)
     if not os.path.exists(model_fn):
         # If model_fn does not exist, or user wishes to write over (clobber) existing model
         # then train a new model and save it
+
+        # Load cropped and padded images
         X_train = np.load(data["x_train_fn"] + '.npy')
         Y_train = np.load(data["y_train_fn"] + '.npy')
         X_validate = np.load(data["x_validate_fn"] + '.npy')
-        model, history = compile_and_run(main_dir,
+        X_test = np.load(data["x_test_fn"] + '.npy')
+        Y_test = np.load(data["y_test_fn"] + '.npy')
+
+
+        # Modify data for model architecture
+        X_train, X_validate, X_test = dataConfiguration(X_train,
+                                                        X_validate,
+                                                        X_test,
+                                                        model_type,
+                                                        data["image_dim"])
+
+        model, history = compile_and_run(target_dir,
                                          model,
                                          model_fn,
                                          model_type,
@@ -113,7 +126,7 @@ def unitTest1():
     # imagesDf = pd.DataFrame({'paths': imgPaths})
 
 
-    mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv',ratios=[0.75,0.15], createPNGDataset=False, batch_size=128, nb_epoch=50, images_to_predict=None, clobber=False, model_fn='autoencoder2.hdf5')
+    mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv',ratios=[0.75,0.15], createPNGDataset=False, batch_size=256, nb_epoch=50, images_to_predict=None, clobber=False, model_fn='autoencoder2.hdf5')
 
 unitTest1()
 #if __name__ == '__main__':

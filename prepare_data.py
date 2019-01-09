@@ -4,7 +4,7 @@ import nibabel as nib
 from create_data_df import create_data_df
 import os
 import h5py
-from helpers import nii2Numpy, normalize
+from helpers import *
 from image_transformations import *
 
 def attribute_category(imagesDf, category, labelName, ratio, verbose=1):
@@ -181,6 +181,27 @@ def create_hd5(imagesDf,data,hdf5_path):
 
     return [sideLength,sideLength]
 
+
+
+def dataConfiguration(X_train, X_validate,X_test,model_type,imgDim):
+
+    if model_type == 'cnn-autoencoder':
+        # This model takes the 50 middle slices of every subject 2D image
+
+        #X_train = X_train[extractMostInfSlice(X_train)]
+        #X_validate = X_validate[extractMostInfSlice(X_validate)]
+
+        X_train = X_train[extractMiddleSlices(X_train, imgDim[0])]
+        X_validate = X_validate[extractMiddleSlices(X_validate, imgDim[0])]
+
+        X_train = X_train.astype('float32')
+        X_validate = X_validate.astype('float32')
+
+        # shuffle the data
+        X_train = quickShuffle(X_train)
+        X_validate = quickShuffle(X_validate)
+
+    return X_train, X_validate, X_test
 
 
 
