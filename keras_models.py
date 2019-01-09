@@ -3,10 +3,10 @@ from keras.models import Sequential, load_model, Model
 from keras.layers import Input, Add, Multiply, Dense, MaxPooling3D, BatchNormalization, Reshape
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Convolution2D
 from keras.preprocessing.image import ImageDataGenerator
-from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D, UpSampling2D
+from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D, UpSampling2D, Cropping2D
 from keras.layers.core import Dropout
 from keras.utils import to_categorical
-from keras.layers import LeakyReLU, MaxPooling2D, concatenate, Conv2DTranspose, Concatenate, ZeroPadding2D
+from keras.layers import LeakyReLU, MaxPooling2D, concatenate, Conv2DTranspose, Concatenate
 from keras.activations import relu
 from keras.callbacks import History, ModelCheckpoint
 from keras import regularizers
@@ -21,14 +21,18 @@ from helpers import *
 import json
 
 
-
+# TODO: This CNN requires input layer to be div. by 4 because 2 maxpool layers
 def cnn_autoencoder(image_dim,verbose=1):
     #encoder
     #input = 28 x 28 x 1 (wide and thin)
 
+    padSize = int(image_dim[0] % 4 / 2)
+
     input_img = Input(shape=(image_dim[0], image_dim[1], 1))
 
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(input_img) #28 x 28 x 32
+    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
     conv1 = BatchNormalization()(conv1)
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
     conv1 = BatchNormalization()(conv1)
@@ -55,7 +59,9 @@ def cnn_autoencoder(image_dim,verbose=1):
     conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
     conv5 = BatchNormalization()(conv5)
     up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
-    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(up2) # 28 x 28 x 1
+    crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
+
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
 
     autoencoder = Model(input_img, decoded)
 
@@ -140,7 +146,7 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
 
     return model
 
-def compile_and_run(model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, nlabels, loss, verbose=1, metric="accuracy", lr=0.005):
+def compile_and_run(mainDir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005):
 
     # shuffle data
     # newInd = shuffled_index(X_train,Y_train, dims= [2,0], random_state=0)
@@ -153,10 +159,13 @@ def compile_and_run(model, model_name, model_type, history_fn, X_train,  Y_train
 
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
+
     #set checkpoint filename
-    checkpoint_fn = str(os.path.basename(model_name).split('.')[0]) +"_checkpoint-{epoch:02d}-{val_loss:.2f}.hdf5"
+    checkpoint_fn = str(os.path.join(mainDir,'processed', 'model', str(os.path.basename(model_name).split('.')[0]) +"_checkpoint-{epoch:02d}-{val_loss:.2f}.hdf5"))
+
     #create checkpoint callback for model
     checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_loss', verbose=0, save_best_only=True, mode='max')
+
     #compile the model
     #model.compile(loss = , optimizer=ada, metrics=[metric])
     model.compile(loss='mean_squared_error', optimizer = RMSprop())
@@ -167,20 +176,22 @@ def compile_and_run(model, model_name, model_type, history_fn, X_train,  Y_train
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 
-        # Added section for training single slice autoencoder
+    # Added section for training single slice autoencoder.
+
     if 'autoencoder' in model_type:
         X_train = X_train[extractMostInfSlice(X_train)]
         X_validate = X_validate[extractMostInfSlice(X_validate)]
         X_train = X_train.astype('float32')
         X_validate = X_validate.astype('float32')
-       # X_train = X_train.reshape((len(X_train), np.prod(X_train.shape[1:])))
-       # X_validate = X_validate.reshape((len(X_validate), np.prod(X_validate.shape[1:])))
+
+        # temporary cropping section
+
 
         history = model.fit(X_train,
                             X_train,
                             validation_data=(X_validate, X_validate),
-                            epochs=50,
-                            batch_size=128,
+                            epochs=nb_epoch,
+                            batch_size=batch_size,
                             callbacks=[checkpoint])
 
     else:

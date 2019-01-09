@@ -17,6 +17,7 @@ def getAllNums(s):
     return nums
 
 
+
 def validateDims(images):
     """
     Verifies that all images have the same dimensions
@@ -47,18 +48,19 @@ def nii2Numpy(imagePaths):
             print("No paths for nii2Numpy to process.")
             return -1
 
-    images = [{'data': nib.load(p), 'path': p} for p in imagePaths]
+    #images = [{'data': nib.load(p), 'path': p} for p in imagePaths]
+    images = nib.load(imagePaths[0])
     #print(images)
-    dims = validateDims(images)
-    numpyImages = np.zeros( (dims + (len(images),)) )
+    #dims = validateDims(images)
+    #numpyImages = np.zeros( (dims + (len(images),)) )
+    #numpyImages = np.zeros((dims))
 
+    #total = len(images)
+    #for i, img in enumerate(images):
+    #    #print("Loading images: {}% complete.".format(100*round(i/total,2)))
+     #   numpyImages[...] = img['data'].get_fdata()
 
-    total = len(images)
-    for i, img in enumerate(images):
-        #print("Loading images: {}% complete.".format(100*round(i/total,2)))
-        numpyImages[:,:,:,i] = img['data'].get_fdata()
-
-    return numpyImages
+    return images.get_fdata()
 
 def updateSubjectDf(newImg,path):
 

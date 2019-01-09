@@ -5,7 +5,7 @@ from create_data_df import create_data_df
 import os
 import h5py
 from helpers import nii2Numpy, normalize
-
+from image_transformations import *
 
 def attribute_category(imagesDf, category, labelName, ratio, verbose=1):
     ''' This function distributes each subject in a 'train' or 'test' category.
@@ -79,7 +79,7 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
     data["y_validate_fn"] = os.path.join(mainDir,'y_validate')
     data["x_test_fn"] = os.path.join(mainDir,'x_test')
     data["y_test_fn"] = os.path.join(mainDir,'y_test')
-    data["image_dim"] = [256,256]
+
 
     if os.path.exists(imagesDfOut):
         imagesDf = pd.read_csv(imagesDfOut)
@@ -96,14 +96,16 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
 
     # Create npy arrays with dataset split
     hdf5_path = os.path.join(mainDir, 'datasetSplit.hdf5')
-    #create_hd5(imagesDf,data, hdf5_path)
+    #data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
+    data["image_dim"] = [198,198]
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))
     imagesDf.to_csv(fname, sep=',')
 
     return [imagesDf,data]
 
-
+# TODO: Fix the labelling. Not same size as number of images!
+# TODO: Ignoring zero sum slices
 def create_hd5(imagesDf,data,hdf5_path):
 
 
@@ -117,10 +119,17 @@ def create_hd5(imagesDf,data,hdf5_path):
     x_test = imagesDf['paths'][imagesDf.category=='test']
     y_test = imagesDf['labels'][imagesDf.category == 'test']
 
+    #[numImages, sideLength] = cropDimensions(imagesDf)
+    numImages = 256
+    sideLength = 197
+    while sideLength % 2 != 0:
+        sideLength+=1
 
-    train_shape = [x_train.shape[0]*256,256,256,1]
-    val_shape = [x_val.shape[0]*256, 256, 256,1]
-    test_shape = [x_test.shape[0]*256, 256, 256,1]
+    data["image_dim"] = [sideLength, sideLength]
+
+    train_shape = [x_train.shape[0]*numImages,sideLength,sideLength,1]
+    val_shape = [x_val.shape[0]*numImages, sideLength, sideLength,1]
+    test_shape = [x_test.shape[0]*numImages, sideLength, sideLength,1]
 
     # open hdf5 file and create arrays
     hdf5_f = h5py.File(hdf5_path, mode='w')
@@ -128,16 +137,17 @@ def create_hd5(imagesDf,data,hdf5_path):
     hdf5_f.create_dataset("validate_img", val_shape, dtype='float16')
     hdf5_f.create_dataset("test_img", test_shape, dtype='float16')
 
-    hdf5_f.create_dataset("train_labels", [y_train.shape[0]*train_shape[1],1], np.int8)
-    hdf5_f.create_dataset("validate_labels", [y_val.shape[0]*val_shape[1],1], np.int8)
-    hdf5_f.create_dataset("test_labels", [y_test.shape[0]*test_shape[1],1], np.int8)
+    hdf5_f.create_dataset("train_labels", [y_train.shape[0]*numImages,1], np.int8)
+    hdf5_f.create_dataset("validate_labels", [y_val.shape[0]*numImages,1], np.int8)
+    hdf5_f.create_dataset("test_labels", [y_test.shape[0]*numImages,1], np.int8)
 
     total_index = {'train': 0,
                    'test': 0,
                    'validate':0}
 
+
     for index, row in imagesDf.iterrows():
-        print('Index: {}'.format(index))
+        print('Preparing data for subject #{}'.format(index))
         if index % 10 == 0: print("Saving",imagesDf["category"][0],"images:",index, '/', imagesDf.shape[0] , end='\r')
 
         img3D = nii2Numpy(row.paths)
@@ -145,12 +155,19 @@ def create_hd5(imagesDf,data,hdf5_path):
         img3D = normalize(img3D)
         img3D.reshape(list(img3D.shape) + [1])
         labels = np.full((img3D.shape[1], 1), label)
+        #labels = np.full(img3D.shape[1], label)
 
-        for j in range(img3D.shape[1]):
-            if img3D[:,j,:].sum() != 0:
-                hdf5_f[row.category + "_img"][(total_index[row.category])] = img3D[:,j,:]
-                hdf5_f[row.category + "_labels"][(total_index[row.category])] = labels[j]
-                total_index[row.category] += 1
+        for j, img in enumerate(np.rollaxis(img3D,1)):
+            #if img.sum() != 0: # do not ignore 0 sum slices
+            img = crop(img)
+            offset1 = sideLength - img.shape[0]
+            offset2 = sideLength - img.shape[1]
+            img= np.pad(img,((0,offset1),(0, offset2)), "constant")
+            img = np.reshape(img,(list(img.shape) + [1]))
+
+            hdf5_f[row.category + "_img"][(total_index[row.category])] = img
+            hdf5_f[row.category + "_labels"][(total_index[row.category])] = labels[j]
+            total_index[row.category] += 1
 
     np.save(data['x_train_fn'] + '.npy', hdf5_f['train_img'])
     np.save(data['x_validate_fn'] + '.npy',hdf5_f['validate_img'])
@@ -161,7 +178,8 @@ def create_hd5(imagesDf,data,hdf5_path):
     np.save(data['y_test_fn'] +'.npy',hdf5_f['test_labels'])
     hdf5_f.close()
     print("")
-    return 0
+
+    return [sideLength,sideLength]
 
 
 

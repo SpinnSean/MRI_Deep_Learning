@@ -6,6 +6,11 @@ from PIL import Image
 import numpy as np
 import os, subprocess
 
+def formatImage(img):
+    img = np.reshape(img,img.shape[1:-1]).astype(np.float32)
+    return img
+
+
 def sideBySide(img1,img2, grey=False):
 
     if grey:
@@ -22,57 +27,40 @@ def saveAndOpenPlot(image,imgDir,fname):
     fullPath = os.path.join(imgDir,fname)
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.imshow(image)
+    ax.imshow(image, cmap='gray')
     fig.savefig(fullPath)
     #subprocess.call(['xdg-open', fullPath])
 
-# def panelPNG(imgPaths):
-#     images = [Image.open(str(p)).convert('L') for p in imgPaths]
-#     imagesCopy = [im.copy() for im in images]
-#     imagesList = [im for im in imagesCopy]
-#     numImages = len(imagesList)
-#     panel_size = np.sqrt(numImages)
-#     #panel_size = np.floor(np.sqrt(numImages)) + 1
-#
-#     widths, heights = zip(*(i.size for i in imagesList))
-#     total_width = sum(widths)
-#     total_height = sum(heights)
-#
-#     imagesWidth, imagesHeight = images[0].size
-#
-#
-#     panel = Image.new('L', (int(panel_size*max(widths)), int(panel_size*max(heights))))
-#
-#     x_offset = 0
-#     y_offset = 0
-#     i = 0
-#
-#     while :
-#         for y in range(0, int(panel_size*max(heights)), max(heights)):
-#             for x in range(0, int(panel_size*max(widths)), max(widths)):
-#                 #print(left, top)
-#                 im = Image.open(str(imgPaths[i]))
-#                 print("Img size: {}".format(im.size))
-#                 #panel.paste(im, (x_offset, y_offset))
-#                 panel.paste(im, (y, x))
-#
-#                 # if (i>0) and (i % panel_size == 0):
-#                 #     y_offset += images[i].size[1]
-#                 #     x_offset = 0
-#                 #
-#                 #
-#                 # else:
-#                 #     x_offset += images[i].size[0]
-#
-#                 #if i == 470:
-#                  #   l=i
-#                 i+=1
-#                 print(i)
-#                 if i == len(imgPaths):
-#
-#
-#
-#     panel.save('/Volumes/Storage/Work/Data/Neuroventure/test.jpg')
+
+def comparePredictions(test,pred,fname):
+    fig, big_axes = plt.subplots(figsize=(32, 16), nrows=2, ncols=1, sharey=True)
+
+    big_axes[0].set_title("Ground Truth", fontsize=22)
+    big_axes[0].title.set_position([.5,0.95])
+    big_axes[0].tick_params(labelcolor=(1., 1., 1., 0.0), top='off', bottom='off', left='off', right='off')
+    # removes the white frame
+    big_axes[0]._frameon = False
+
+
+    big_axes[1].set_title("Predicted", fontsize=22)
+    big_axes[1].title.set_position([.5, 0.95])
+    big_axes[1].tick_params(labelcolor=(1., 1., 1., 0.0), top='off', bottom='off', left='off', right='off')
+    # removes the white frame
+    big_axes[1]._frameon = False
+
+    for i, j in zip(range(1, 6),range(6, 11)):
+        ax1 = fig.add_subplot(2, 5, i)
+        ax1.imshow(test[i,...,0].astype(np.float32), cmap='gray', aspect='equal')
+        ax1.set_axis_off()
+
+        ax2 = fig.add_subplot(2, 5, j)
+        ax2.imshow(pred[i,...,0].astype(np.float32), cmap='gray',aspect='equal')
+        ax2.set_axis_off()
+
+    fig.set_facecolor('w')
+    plt.tight_layout()
+    #plt.subplots_adjust(wspace=0.15, hspace=0)
+    plt.savefig(os.path.join('./processed/predict/', fname))
 
 
 def panelPNG(imgPaths):

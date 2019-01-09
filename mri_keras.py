@@ -57,10 +57,9 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
     [imagesDf,data] = prepare_data(main_dir, data_dir, report_dir, input_str, ext, labelName, idColumn, covPath, imagesDfOut, ratios)
 
 
-  #  if createPNGDataset:
-   #    NUM_IMG, PNG_DIM = create_PNG_dataset(imagesDf.paths.tolist())
-
-#    data = load_data(main_dir, data_dir, imagesDf, PNG_DIM, NUM_IMG)
+     #if createPNGDataset:
+        #NUM_IMG, PNG_DIM = create_PNG_dataset(imagesDf.paths.tolist())
+        #data = load_data(main_dir, data_dir, imagesDf, PNG_DIM, NUM_IMG )
 
     ### 1) Define architecture of neural network
     Y_validate=np.load(data["y_validate_fn"]+'.npy')
@@ -70,7 +69,7 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
 
     ### 2) Train network on data
     model_fn = set_model_name(model_fn, model_dir)
-    history_fn = str(os.path.basename(model_fn).split('.')[0]) + '_history.json'
+    history_fn = str(os.path.join(main_dir,'processed', 'model', str(os.path.basename(model_fn).split('.')[0]) + '_history.json'))
 
     print('Model:', model_fn)
     if not os.path.exists(model_fn):
@@ -79,11 +78,25 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
         X_train = np.load(data["x_train_fn"] + '.npy')
         Y_train = np.load(data["y_train_fn"] + '.npy')
         X_validate = np.load(data["x_validate_fn"] + '.npy')
-        model, history = compile_and_run(model, model_fn, model_type,history_fn, X_train, Y_train, X_validate, Y_validate,
-                                         nb_epoch, nlabels, loss=loss, verbose=1)
+        model, history = compile_and_run(main_dir,
+                                         model,
+                                         model_fn,
+                                         model_type,
+                                         history_fn,
+                                         X_train,
+                                         Y_train,
+                                         X_validate,
+                                         Y_validate,
+                                         nb_epoch,
+                                         batch_size,
+                                         nlabels,
+                                         loss=loss,
+                                         verbose=1)
 
         print("Fitting over.")
-
+    # Load model
+    model = model.load_weights(model_fn)
+    pred = model.predict(X_validate[extractMostInfSlice(X_validate)])
 
 
 def unitTest1():
@@ -100,7 +113,7 @@ def unitTest1():
     # imagesDf = pd.DataFrame({'paths': imgPaths})
 
 
-    mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv')
+    mri_keras('/data/IMAGEN/BIDS/derivatives/BIDS/FU2', 'anat', './reports', './processed','T1w', 'nii', 'gender', 'ID', 'IMAGEN_Test.csv',ratios=[0.75,0.15], createPNGDataset=False, batch_size=128, nb_epoch=50, images_to_predict=None, clobber=False, model_fn='autoencoder2.hdf5')
 
 unitTest1()
 #if __name__ == '__main__':
