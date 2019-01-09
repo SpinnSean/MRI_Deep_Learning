@@ -146,7 +146,7 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
 
     return model
 
-def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005,nGPU):
+def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005, nGPU=1):
 
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
