@@ -49,7 +49,6 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-mri_keras_args
 venv
 main
 *.pyc
