@@ -262,16 +262,18 @@ def extractMostInfSlice(A,dim=256):
 
     return indices
 
-def extractMiddleSlices(A,dim=198):
+def extractMiddleSlices(A,dim=256):
 
     # the numbers 115 and 190 are approximate bounds for
     # the middle of the brain on a 256 resolution
-    L = int(np.floor(115/256 * (dim-1)))
-    H = int(np.floor(190/256 * (dim-1)))
+    #L = int(np.floor(115/256 * (dim-1)))
+    #H = int(np.floor(190/256 * (dim-1)))
+    L = 115
+    H = 121
 
     prev = 0
     indices=[]
-    for x in range(dim-1, A.shape[0], dim):
+    for x in range(dim, A.shape[0], dim):
         lowInd = prev + L
         highInd = prev + H
         indices.extend(list(range(lowInd,highInd)))

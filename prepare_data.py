@@ -96,8 +96,8 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
 
     # Create npy arrays with dataset split
     hdf5_path = os.path.join(mainDir, 'datasetSplit.hdf5')
-    #data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
-    data["image_dim"] = [198,198]
+    data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
+    #data["image_dim"] = [198,198]
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))
     imagesDf.to_csv(fname, sep=',')
@@ -106,7 +106,7 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
 
 # TODO: Fix the labelling. Not same size as number of images!
 # TODO: Ignoring zero sum slices
-def create_hd5(imagesDf,data,hdf5_path):
+def create_hd5(imagesDf,data,hdf5_path,cropping=False):
 
 
     if os.path.exists(hdf5_path):
@@ -121,7 +121,7 @@ def create_hd5(imagesDf,data,hdf5_path):
 
     #[numImages, sideLength] = cropDimensions(imagesDf)
     numImages = 256
-    sideLength = 197
+    sideLength = 256
     while sideLength % 2 != 0:
         sideLength+=1
 
@@ -158,12 +158,14 @@ def create_hd5(imagesDf,data,hdf5_path):
         #labels = np.full(img3D.shape[1], label)
 
         for j, img in enumerate(np.rollaxis(img3D,1)):
-            #if img.sum() != 0: # do not ignore 0 sum slices
-            img = crop(img)
-            offset1 = sideLength - img.shape[0]
-            offset2 = sideLength - img.shape[1]
-            img= np.pad(img,((0,offset1),(0, offset2)), "constant")
-            img = np.reshape(img,(list(img.shape) + [1]))
+            if img.sum() != 0: # do not ignore 0 sum slices
+                if cropping:
+                    img = crop(img)
+                    offset1 = sideLength - img.shape[0]
+                    offset2 = sideLength - img.shape[1]
+                    img= np.pad(img,((0,offset1),(0, offset2)), "constant")
+
+                img = np.reshape(img,(list(img.shape) + [1]))
 
             hdf5_f[row.category + "_img"][(total_index[row.category])] = img
             hdf5_f[row.category + "_labels"][(total_index[row.category])] = labels[j]
