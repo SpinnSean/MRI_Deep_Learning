@@ -1,6 +1,7 @@
 import nibabel as nib
 import numpy as np
 import os
+import ast
 import re
 import h5py
 from PIL import Image
@@ -12,6 +13,22 @@ from functools import reduce
 def readParameters(path2Args):
     args = pd.read_csv('mri_keras_args', header=None, sep=';')
     args_dict = dict(zip(args[0], args[1]))
+
+    # Transform the type for some variables
+    nonStrTypes = ['ratios',
+                   'createPNGDataset',
+                   'batch_size',
+                   'nb_epoch',
+                   'images_to_predict',
+                   'clobber', 'n_dil',
+                   'kernel_size',
+                   'drop_out',
+                   'pad_base',
+                   'verbose',
+                   'make_model_only']
+    for arg in nonStrTypes:
+        args_dict[arg] = ast.literal_eval(args_dict[arg])
+
     return args_dict
 
 
