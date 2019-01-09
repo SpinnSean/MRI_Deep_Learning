@@ -128,7 +128,8 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
                                          batch_size,
                                          nlabels,
                                          loss=loss,
-                                         verbose=1)
+                                         verbose=1,
+                                         nGPU=1)
 
         print("Fitting over.")
     # Load model

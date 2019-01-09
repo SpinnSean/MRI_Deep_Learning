@@ -146,7 +146,7 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
 
     return model
 
-def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005):
+def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005,nGPU):
 
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
@@ -171,12 +171,29 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
     print("Training size: {}\n Validation size: {}\n".format(X_train.shape, X_validate.shape))
 
     # train model
-    history = model.fit(X_train,
-                        X_train,
-                        validation_data=(X_validate, X_validate),
-                        epochs=nb_epoch,
-                        batch_size=batch_size,
-                        callbacks=[checkpoint])
+    # augmentation generator
+    if nGPU >= 1:
+        aug = ImageDataGenerator(rotation_range=8,
+                                 width_shift_range=0.1,
+                                 height_shift_range=0.1,
+                                 zoom_range=0.1,
+                                 fill_mode="nearest")
+
+        history = model.fit_generator(
+                  aug.flow(X_train,
+                  X_train,
+                  batch_size = batch_size*nGPU),
+                  validation_data= (X_validate, X_validate),
+                  steps_per_epoch= len(X_train) // (batch_size * nGPU),
+                  epochs= nb_epoch,
+                  callbacks= [checkpoint])
+    else:
+        history = model.fit(X_train,
+                            X_train,
+                            validation_data=(X_validate, X_validate),
+                            epochs=nb_epoch,
+                            batch_size=batch_size,
+                            callbacks=[checkpoint])
 
     # save model
     model.save(model_name)
