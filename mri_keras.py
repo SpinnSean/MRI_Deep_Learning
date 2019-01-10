@@ -8,7 +8,7 @@ from create_PNG_dataset import create_PNG_dataset
 from keras_models import *
 import tensorflow as tf
 from keras import backend
-from keras.utils.training_utils import multi_gpu_model
+#from keras.utils.training_utils import multi_gpu_model
 from sklearn.model_selection import train_test_split
 import argparse
 from sys import argv, exit
@@ -132,9 +132,11 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
                                          nGPU=nGPU)
 
         print("Fitting over.")
-    # Load model
-    model = model.load_weights(model_fn)
-    pred = model.predict(X_validate[extractMostInfSlice(X_validate)])
+    else:
+        # Load model
+        model = model.load_weights(model_fn)
+
+    #pred = model.predict(X_validate[extractMostInfSlice(X_validate)])
 
 
 def unitTest1():
