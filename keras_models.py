@@ -172,12 +172,12 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     # train model
     # augmentation generator
+    aug = ImageDataGenerator(rotation_range=8,
+                             width_shift_range=0.1,
+                             height_shift_range=0.1,
+                             zoom_range=0.1,
+                             fill_mode="nearest")
     if nGPU > 1:
-        aug = ImageDataGenerator(rotation_range=8,
-                                 width_shift_range=0.1,
-                                 height_shift_range=0.1,
-                                 zoom_range=0.1,
-                                 fill_mode="nearest")
 
         history = model.fit_generator(
                   aug.flow(X_train,
@@ -188,12 +188,21 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                   epochs= nb_epoch,
                   callbacks= [checkpoint])
     else:
-        history = model.fit(X_train,
-                            X_train,
-                            validation_data=(X_validate, X_validate),
-                            epochs=nb_epoch,
-                            batch_size=batch_size,
-                            callbacks=[checkpoint])
+
+        history = model.fit_generator(
+            aug.flow(X_train,
+                     X_train,
+                     batch_size=batch_size * nGPU),
+                     validation_data=(X_validate, X_validate),
+                     steps_per_epoch=len(X_train) // (batch_size * nGPU),
+                     epochs=nb_epoch,
+                     callbacks=[checkpoint])
+        # history = model.fit(X_train,
+        #                     X_train,
+        #                     validation_data=(X_validate, X_validate),
+        #                     epochs=nb_epoch,
+        #                     batch_size=batch_size,
+        #                     callbacks=[checkpoint])
 
     # save model
     model.save(model_name)

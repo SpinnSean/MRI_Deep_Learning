@@ -148,7 +148,7 @@ def create_hd5(imagesDf,data,hdf5_path,cropping=False):
 
     for index, row in imagesDf.iterrows():
         print('Preparing data for subject #{}'.format(index))
-        if index % 10 == 0: print("Saving",imagesDf["category"][0],"images:",index, '/', imagesDf.shape[0] , end='\r')
+        #if index % 10 == 0: print("Saving",imagesDf["category"][0],"images:",index, '/', imagesDf.shape[0])
 
         img3D = nii2Numpy(row.paths)
         label = row.labels
