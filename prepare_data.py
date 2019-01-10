@@ -96,8 +96,8 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
 
     # Create npy arrays with dataset split
     hdf5_path = os.path.join(mainDir, 'datasetSplit.hdf5')
-    data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
-    #data["image_dim"] = [198,198]
+    #data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
+    data["image_dim"] = [256,256]
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))
     imagesDf.to_csv(fname, sep=',')

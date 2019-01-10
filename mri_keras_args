@@ -9,7 +9,7 @@ idColumn;ID
 covPath;IMAGEN_Test.csv
 ratios;[0.75,0.15]
 createPNGDataset;False
-batch_size;256
+batch_size;32
 nb_epoch;50
 images_to_predict;None
 clobber;False

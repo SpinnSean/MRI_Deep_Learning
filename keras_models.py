@@ -172,7 +172,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     # train model
     # augmentation generator
-    if nGPU >= 1:
+    if nGPU > 1:
         aug = ImageDataGenerator(rotation_range=8,
                                  width_shift_range=0.1,
                                  height_shift_range=0.1,
