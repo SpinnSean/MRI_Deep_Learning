@@ -98,18 +98,18 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
     model_fn = set_model_name(model_name, model_dir)
     history_fn = str(os.path.join(target_dir, 'model', str(os.path.basename(model_fn).split('.')[0]) + '_history.json'))
 
+    # Load cropped and padded images
+    X_train = np.load(data["x_train_fn"] + '.npy')
+    Y_train = np.load(data["y_train_fn"] + '.npy')
+    X_validate = np.load(data["x_validate_fn"] + '.npy')
+    X_test = np.load(data["x_test_fn"] + '.npy')
+    Y_test = np.load(data["y_test_fn"] + '.npy')
+
+
     print('Model:', model_fn)
     if not os.path.exists(model_fn) or clobber:
         # If model_fn does not exist, or user wishes to write over (clobber) existing model
         # then train a new model and save it
-
-        # Load cropped and padded images
-        X_train = np.load(data["x_train_fn"] + '.npy')
-        Y_train = np.load(data["y_train_fn"] + '.npy')
-        X_validate = np.load(data["x_validate_fn"] + '.npy')
-        X_test = np.load(data["x_test_fn"] + '.npy')
-        Y_test = np.load(data["y_test_fn"] + '.npy')
-
 
         # Modify data for model architecture
         X_train, X_validate, X_test,  Y_train, Y_validate, Y_test = dataConfiguration(X_train,
