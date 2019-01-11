@@ -52,6 +52,8 @@ docs/_build/
 mri_keras_args
 venv
 main
+plots
+processed
 *.pyc
 *.pyo
 .idea/

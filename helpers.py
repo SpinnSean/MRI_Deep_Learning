@@ -52,8 +52,12 @@ def quickShuffle(A):
     perm = np.arange(A.shape[0])
     np.random.shuffle(perm)
     A = A[perm]
-    return A
+    return A,perm
 
+def shufflePair(A,B):
+    A, shuffled_ind =quickShuffle(A)
+    B = B[shuffled_ind]
+    return A,B
 
 def validateDims(images):
     """
@@ -263,6 +267,7 @@ def extractMostInfSlice(A,dim=256):
 
     return indices
 
+# TODO: fix the hardcoding of middle slices
 def extractMiddleSlices(A,dim=256):
 
     # the numbers 115 and 190 are approximate bounds for

@@ -2,11 +2,13 @@ import pandas as pd
 import numpy as np
 import nibabel as nib
 from create_data_df import create_data_df
+from keras.utils import to_categorical
 import os
 import h5py
 from helpers import *
 from image_transformations import *
 
+# TODO: validate train test split for equal label repartition
 def attribute_category(imagesDf, category, labelName, ratio, verbose=1):
     ''' This function distributes each subject in a 'train' or 'test' category.
     Args:
@@ -67,7 +69,7 @@ def count_valid_samples(imagesDf):
     return (total_slices)
 
 
-
+# TODO: fix hardcoded image dimensions in case of existing file.
 def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idColumn, covPath, imagesDfOut,ratios=[0.75,0.15]):
 
     data = {}
@@ -81,9 +83,9 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
     data["y_test_fn"] = os.path.join(mainDir,'y_test')
 
 
-    if os.path.exists(imagesDfOut):
-        imagesDf = pd.read_csv(imagesDfOut)
-        return [imagesDf, data]
+   # if os.path.exists(imagesDfOut):
+    #    imagesDf = pd.read_csv(imagesDfOut)
+     #   return [imagesDf, data]
 
 
     # Create the path, label, category data frame
@@ -96,8 +98,11 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
 
     # Create npy arrays with dataset split
     hdf5_path = os.path.join(mainDir, 'datasetSplit.hdf5')
-    #data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
-    data["image_dim"] = [256,256]
+    if not os.path.exists(hdf5_path):
+        data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
+    else:
+        data["image_dim"] = [256,256]
+
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))
     imagesDf.to_csv(fname, sep=',')
@@ -185,7 +190,7 @@ def create_hd5(imagesDf,data,hdf5_path,cropping=False):
 
 
 
-def dataConfiguration(X_train, X_validate,X_test,model_type,imgDim):
+def dataConfiguration(X_train, X_validate,X_test, Y_train, Y_validate, Y_test, model_type,imgDim,nlabels):
 
     if model_type == 'cnn-autoencoder':
         # This model takes the 50 middle slices of every subject 2D image
@@ -200,10 +205,18 @@ def dataConfiguration(X_train, X_validate,X_test,model_type,imgDim):
         X_validate = X_validate.astype('float32')
 
         # shuffle the data
-        X_train = quickShuffle(X_train)
-        X_validate = quickShuffle(X_validate)
+        X_train, _ = quickShuffle(X_train)
+        X_validate, _ = quickShuffle(X_validate)
 
-    return X_train, X_validate, X_test
+    if model_type == 'base':
+        Y_train = to_categorical(Y_train, num_classes=nlabels)
+        Y_validate = to_categorical(Y_validate, num_classes=nlabels)
+        X_train, Y_train = shufflePair(X_train, Y_train)
+        X_validate, Y_validate = shufflePair(X_validate, Y_validate)
+        X_test, Y_test = shufflePair(X_test, Y_test)
+
+
+    return X_train, X_validate, X_test, Y_train, Y_validate, Y_test
 
 
 

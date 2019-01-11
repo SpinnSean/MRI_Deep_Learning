@@ -32,7 +32,9 @@ def saveAndOpenPlot(image,imgDir,fname):
     #subprocess.call(['xdg-open', fullPath])
 
 
-def comparePredictions(test,pred,fname):
+def comparePredictions(test,pred,category,model_name):
+
+    fname = os.path.join('.','processed/predict',category,model_name+'.pdf')
     fig, big_axes = plt.subplots(figsize=(32, 16), nrows=2, ncols=1, sharey=True)
 
     big_axes[0].set_title("Ground Truth", fontsize=22)
@@ -60,8 +62,20 @@ def comparePredictions(test,pred,fname):
     fig.set_facecolor('w')
     plt.tight_layout()
     #plt.subplots_adjust(wspace=0.15, hspace=0)
-    plt.savefig(os.path.join('./processed/predict/', fname))
+    plt.savefig(fname)
 
+def plotLoss(history,nb_epoch,model_name,show=False):
+    loss = history['loss']
+    val_loss = history['val_loss']
+    epochs = range(nb_epoch)
+    plt.figure()
+    plt.plot(epochs, loss, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.title('Training and validation loss')
+    plt.legend()
+    if show:
+        plt.show()
+    plt.savefig('./plots/' + model_name + '.pdf')
 
 def panelPNG(imgPaths):
     images = [Image.open(str(p)).convert('L') for p in imgPaths]

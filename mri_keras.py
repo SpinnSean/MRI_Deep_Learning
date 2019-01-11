@@ -1,12 +1,13 @@
 import os
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-#os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 from prepare_data import  *
 from helpers import *
 from create_PNG_dataset import create_PNG_dataset
 from keras_models import *
 import tensorflow as tf
+from plotting import plotLoss, comparePredictions
 from keras import backend
 #from keras.utils.training_utils import multi_gpu_model
 from sklearn.model_selection import train_test_split
@@ -48,7 +49,8 @@ def setup_dirs(target_dir="./"):
     return 0
 
 
-def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_fn='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False,nGPU=1):
+
+def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False,nGPU=1):
 
     setup_dirs(target_dir)
     #PNG_DIM=[256,256]
@@ -72,6 +74,7 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
                             activation_hidden=activation_hidden, activation_output=activation_output, loss=loss,
                             verbose=0)
         if make_model_only: return 0
+
     else:
         print("[INFO] training with {} GPUs...".format(nGPU))
 
@@ -92,11 +95,11 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
 
 
     ### 2) Train network on data
-    model_fn = set_model_name(model_fn, model_dir)
+    model_fn = set_model_name(model_name, model_dir)
     history_fn = str(os.path.join(target_dir, 'model', str(os.path.basename(model_fn).split('.')[0]) + '_history.json'))
 
     print('Model:', model_fn)
-    if not os.path.exists(model_fn):
+    if not os.path.exists(model_fn) or clobber:
         # If model_fn does not exist, or user wishes to write over (clobber) existing model
         # then train a new model and save it
 
@@ -109,11 +112,15 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
 
 
         # Modify data for model architecture
-        X_train, X_validate, X_test = dataConfiguration(X_train,
-                                                        X_validate,
-                                                        X_test,
-                                                        model_type,
-                                                        data["image_dim"])
+        X_train, X_validate, X_test,  Y_train, Y_validate, Y_test = dataConfiguration(X_train,
+                                                                                    X_validate,
+                                                                                    X_test,
+                                                                                     Y_train,
+                                                                                    Y_validate,
+                                                                                    Y_test,
+                                                                                    model_type,
+                                                                                    data["image_dim"],
+                                                                                    nlabels)
 
         model, history = compile_and_run(target_dir,
                                          model,
@@ -134,9 +141,19 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
         print("Fitting over.")
     else:
         # Load model
-        model = model.load_weights(model_fn)
+        model = load_model(model_fn)
+        with open(history_fn) as f:
+            history = json.load(f)
+    print("Loss plot create in ./plots/")
+    plotLoss(history, nb_epoch, model_name[:-5])
 
-    #pred = model.predict(X_validate[extractMostInfSlice(X_validate)])
+    X_test_mid = X_test[extractMiddleSlices(X_test)]
+    X_validate_mid = X_validate[extractMiddleSlices(X_validate)]
+    predVal = model.predict(X_validate_mid)
+    predTest = model.predict(X_test_mid)
+    comparePredictions(X_validate_mid,predVal,'validate',model_name[:-5])
+    comparePredictions(X_test_mid, predTest, 'test', model_name[:-5])
+    print("Predictions complete. A comparison plot is stored in ./plots for validation and test sets.")
 
 
 def unitTest1():

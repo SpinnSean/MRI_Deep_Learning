@@ -14,14 +14,14 @@ def extractSubjName(path):
      #   return -1
     return subject[0]
 
-# To Do: somehow specify what ids look like, if they have text or not, leading 0, etc.
+# TODO: undo hardcoded modif for Neuroventure subject codes
 def renameSubject(code):
     if code == len(code)*' ':
         return ''
-    #num = re.findall(r'_\d+', code)[0][-3:]
-    return 'sub-' + code
+    num = re.findall(r'_\d*', code)
+    return 'sub-' + "".join(num)[1:]
 
-
+# TODO: Remove the hardcoded seperator
 def create_labels(labelName, mainDir, covPath, idColumn):
     """2
     Extracts the covariate which is used as label
@@ -35,7 +35,8 @@ def create_labels(labelName, mainDir, covPath, idColumn):
     try:
         covDf = pd.read_csv(os.path.join(mainDir,covPath),
                             usecols=[idColumn,labelName],
-                            converters={idColumn: lambda x: str(x)})
+                            converters={idColumn: lambda x: str(x)},
+                            sep=' ')
 
     except ValueError:
         covDf = pd.read_csv(os.path.join(mainDir,covPath),

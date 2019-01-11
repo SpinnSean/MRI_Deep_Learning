@@ -5,7 +5,6 @@ from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Convolution2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D, UpSampling2D, Cropping2D
 from keras.layers.core import Dropout
-from keras.utils import to_categorical
 from keras.layers import LeakyReLU, MaxPooling2D, concatenate, Conv2DTranspose, Concatenate
 from keras.activations import relu
 from keras.callbacks import History, ModelCheckpoint
@@ -119,7 +118,7 @@ def base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_
     else:
         n_dil = [int(i) for i in n_dil.split(",")]
 
-    IN = CONV = Input(shape=(image_dim[1], image_dim[2], 1))
+    IN = CONV = Input(shape=(image_dim[0], image_dim[1], 1))
     n_layers = int(len(nK))
     kDim = [kernel_size] * n_layers
 
@@ -160,25 +159,27 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
     #compile the model
     #model.compile(loss = , optimizer=ada, metrics=[metric])
     print("Compiling model {}...".format(model_name))
-    model.compile(loss='mean_squared_error', optimizer = RMSprop())
 
+    if 'autoencoder' in model_type:
 
-   # fit model
-    if loss in ['binary_categorial']:
-        Y_train = to_categorical(Y_train, num_classes=nlabels)
-        Y_validate = to_categorical(Y_validate, num_classes=nlabels)
+        model.compile(loss=loss, optimizer = RMSprop())
+
+    elif 'base' in model_type:
+
+        model.compile(loss=loss, optimizer=Adam())
+
 
     print("Training size: {}\n Validation size: {}\n".format(X_train.shape, X_validate.shape))
 
     # train model
     # augmentation generator
-    aug = ImageDataGenerator(rotation_range=8,
+    aug = ImageDataGenerator(rotation_range=3,
                              width_shift_range=0.1,
                              height_shift_range=0.1,
-                             zoom_range=0.1,
+                             zoom_range=0.01,
                              fill_mode="nearest")
-    if nGPU > 1:
-
+    #if nGPU > 1:
+    if 'autoencoder' in model_type:
         history = model.fit_generator(
                   aug.flow(X_train,
                   X_train,
@@ -187,16 +188,27 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                   steps_per_epoch= len(X_train) // (batch_size * nGPU),
                   epochs= nb_epoch,
                   callbacks= [checkpoint])
-    else:
 
+    elif 'base' in model_type:
         history = model.fit_generator(
             aug.flow(X_train,
-                     X_train,
+                     Y_train,
                      batch_size=batch_size * nGPU),
-                     validation_data=(X_validate, X_validate),
-                     steps_per_epoch=len(X_train) // (batch_size * nGPU),
-                     epochs=nb_epoch,
-                     callbacks=[checkpoint])
+                    validation_data=(X_validate, X_validate),
+                    steps_per_epoch=len(X_train) // (batch_size * nGPU),
+                    epochs=nb_epoch,
+                    callbacks=[checkpoint])
+    #
+    # else:
+    #
+    #     history = model.fit_generator(
+    #         aug.flow(X_train,
+    #                  X_train,
+    #                  batch_size=batch_size * nGPU),
+    #                  validation_data=(X_validate, X_validate),
+    #                  steps_per_epoch=len(X_train) // (batch_size * nGPU),
+    #                  epochs=nb_epoch,
+    #                  callbacks=[checkpoint])
         # history = model.fit(X_train,
         #                     X_train,
         #                     validation_data=(X_validate, X_validate),
