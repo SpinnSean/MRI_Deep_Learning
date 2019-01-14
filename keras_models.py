@@ -7,7 +7,7 @@ from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding
 from keras.layers.core import Dropout
 from keras.layers import LeakyReLU, MaxPooling2D, concatenate, Conv2DTranspose, Concatenate
 from keras.activations import relu
-from keras.callbacks import History, ModelCheckpoint
+from keras.callbacks import History, ModelCheckpoint, TensorBoard
 from keras import regularizers
 from keras.optimizers import Adadelta, RMSprop,SGD,Adam
 from sklearn.utils import shuffle
@@ -20,7 +20,57 @@ from helpers import *
 import json
 
 
-# TODO: This CNN requires input layer to be div. by 4 because 2 maxpool layers
+def cnn_autoencoder_2(image_dim,verbose=1):
+    #encoder
+    #input = 28 x 28 x 1 (wide and thin)
+
+    padSize = int(image_dim[0] % 4 / 2)
+
+    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+
+    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+
+    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
+    conv1 = BatchNormalization()(conv1)
+    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv1)
+    conv1 = BatchNormalization()(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
+    conv2 = BatchNormalization()(conv2)
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    conv2 = BatchNormalization()(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv3)
+    conv3 = BatchNormalization()(conv3)
+
+
+    #decoder
+    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
+    conv4 = BatchNormalization()(conv4)
+    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
+    conv4 = BatchNormalization()(conv4)
+    up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
+    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
+    conv5 = BatchNormalization()(conv5)
+    up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
+    crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
+
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
+
+    autoencoder = Model(input_img, decoded)
+
+    if verbose > 0:
+        print(autoencoder.summary())
+
+    return autoencoder
+
+
 def cnn_autoencoder(image_dim,verbose=1):
     #encoder
     #input = 28 x 28 x 1 (wide and thin)
@@ -43,7 +93,7 @@ def cnn_autoencoder(image_dim,verbose=1):
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
     conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
     conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+    conv3 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv3)
     conv3 = BatchNormalization()(conv3)
 
 
@@ -68,6 +118,56 @@ def cnn_autoencoder(image_dim,verbose=1):
         print(autoencoder.summary())
 
     return autoencoder
+
+#
+# # TODO: This CNN requires input layer to be div. by 4 because 2 maxpool layers
+# def cnn_autoencoder(image_dim,verbose=1):
+#     #encoder
+#     #input = 28 x 28 x 1 (wide and thin)
+#
+#     padSize = int(image_dim[0] % 4 / 2)
+#
+#     input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+#
+#     pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+#
+#     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
+#     conv1 = BatchNormalization()(conv1)
+#     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+#     conv1 = BatchNormalization()(conv1)
+#     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
+#     conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
+#     conv2 = BatchNormalization()(conv2)
+#     conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+#     conv2 = BatchNormalization()(conv2)
+#     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
+#     conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
+#     conv3 = BatchNormalization()(conv3)
+#     conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
+#     conv3 = BatchNormalization()(conv3)
+#
+#
+#     #decoder
+#     conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
+#     conv4 = BatchNormalization()(conv4)
+#     conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
+#     conv4 = BatchNormalization()(conv4)
+#     up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
+#     conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
+#     conv5 = BatchNormalization()(conv5)
+#     conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
+#     conv5 = BatchNormalization()(conv5)
+#     up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
+#     crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
+#
+#     decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
+#
+#     autoencoder = Model(input_img, decoded)
+#
+#     if verbose > 0:
+#         print(autoencoder.summary())
+#
+#     return autoencoder
 
 def sparse_autoencoder(inShape, kSize, activation, loss, l1Reg=0.05, verbose=1):
 
@@ -138,8 +238,9 @@ def base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_
 
 def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type, activation_hidden, activation_output, loss, verbose=0):
     if model_type == 'cnn-autoencoder':
-       # model = sparse_autoencoder(image_dim, kernel_size, activation_hidden, loss)
        model = cnn_autoencoder(image_dim)
+    elif model_type == 'cnn-autoencoder-2':
+       model = cnn_autoencoder_2(image_dim)
     elif model_type == 'base':
         model = base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output, verbose=1)
 
@@ -162,7 +263,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     if 'autoencoder' in model_type:
 
-        model.compile(loss=loss, optimizer = RMSprop())
+        model.compile(loss=loss, optimizer=Adam())
 
     elif 'base' in model_type:
 
@@ -173,10 +274,10 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     # train model
     # augmentation generator
-    aug = ImageDataGenerator(rotation_range=3,
-                             width_shift_range=0.1,
-                             height_shift_range=0.1,
-                             zoom_range=0.01,
+    aug = ImageDataGenerator(rotation_range=10,
+                             width_shift_range=0.01,
+                             height_shift_range=0.01,
+                             zoom_range=0.3,
                              fill_mode="nearest")
     #if nGPU > 1:
     if 'autoencoder' in model_type:
@@ -188,6 +289,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                   steps_per_epoch= len(X_train) // (batch_size * nGPU),
                   epochs= nb_epoch,
                   callbacks= [checkpoint])
+                  #callbacks= [TensorBoard(log_dir='/home/spinney/scripts/python/MRI_Deep_Learning/logs/autoencoder')])
 
     elif 'base' in model_type:
         history = model.fit_generator(

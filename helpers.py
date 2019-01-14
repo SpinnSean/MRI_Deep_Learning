@@ -274,8 +274,8 @@ def extractMiddleSlices(A,dim=256):
     # the middle of the brain on a 256 resolution
     #L = int(np.floor(115/256 * (dim-1)))
     #H = int(np.floor(190/256 * (dim-1)))
-    L = 115
-    H = 121
+    L = 107
+    H = 147
 
     prev = 0
     indices=[]

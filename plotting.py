@@ -77,6 +77,17 @@ def plotLoss(history,nb_epoch,model_name,show=False):
         plt.show()
     plt.savefig('./plots/' + model_name + '.pdf')
 
+def inspectAugmentedImages(generator,X_train, N=16):
+    batches = generator.flow(X_train,
+                       X_train,
+                       batch_size=N)
+    x_batch, y_batch = next(batches)
+    for i in range(N):
+        img = x_batch[i][...,0]
+        saveAndOpenPlot(img, './plots', 'trainingSetGenerated{}'.format(i))
+    print("Augmented Images saved in plots.")
+
+
 def panelPNG(imgPaths):
     images = [Image.open(str(p)).convert('L') for p in imgPaths]
     imagesCopy = [im.copy() for im in images]

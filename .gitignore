@@ -49,6 +49,8 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+evaluate_model.py
+mnist_test.py
 mri_keras_args
 venv
 main

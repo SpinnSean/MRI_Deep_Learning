@@ -203,6 +203,7 @@ def dataConfiguration(X_train, X_validate,X_test, Y_train, Y_validate, Y_test, m
 
         X_train = X_train.astype('float32')
         X_validate = X_validate.astype('float32')
+        X_test = X_test.astype('float32')
 
         # shuffle the data
         X_train, _ = quickShuffle(X_train)
