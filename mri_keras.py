@@ -1,6 +1,6 @@
 import os
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-#os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 from prepare_data import  *
 from helpers import *
@@ -122,7 +122,7 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
                                                                                     data["image_dim"],
                                                                                     nlabels)
 
-        model, history = compile_and_run(target_dir,
+        model, _ = compile_and_run(target_dir,
                                          model,
                                          model_fn,
                                          model_type,
@@ -145,6 +145,9 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
         with open(history_fn) as f:
             history = json.load(f)
     print("Loss plot create in ./plots/")
+    with open(history_fn) as f:
+        history = json.load(f)
+
     plotLoss(history, nb_epoch, model_name[:-5])
 
     X_test_mid = X_test[extractMiddleSlices(X_test)]
