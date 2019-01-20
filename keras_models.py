@@ -19,6 +19,59 @@ from math import sqrt
 from helpers import *
 import json
 
+def cnn_autoencoder_4(image_dim,verbose=1):
+    #encoder
+    #input = 28 x 28 x 1 (wide and thin)
+
+    padSize = int(image_dim[0] % 4 / 2)
+
+    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+
+    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+
+    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
+    conv1 = BatchNormalization()(conv1)
+    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv1)
+    conv1 = BatchNormalization()(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
+    conv2 = BatchNormalization()(conv2)
+    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
+    conv2 = BatchNormalization()(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
+    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv3)
+    conv3 = BatchNormalization()(conv3)
+
+
+    #decoder
+    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
+    conv4 = BatchNormalization()(conv4)
+    conv5 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
+    conv5 = BatchNormalization()(conv5)
+    up1 = UpSampling2D((2,2))(conv5) # 14 x 14 x 128
+    conv6 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
+    conv6 = BatchNormalization()(conv6)
+    conv7 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv6)
+    conv7 = BatchNormalization()(conv7)
+    conv8 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv7)
+    conv8 = BatchNormalization()(conv8)
+    up2 = UpSampling2D((2,2))(conv8) # 28 x 28 x 64
+    crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
+    conv9 = Conv2D(64, (3, 3), activation='relu', padding='same')(crop1)
+    conv9 = BatchNormalization()(conv9)
+
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(conv9) # 28 x 28 x 1
+
+    autoencoder = Model(input_img, decoded)
+
+    if verbose > 0:
+        print(autoencoder.summary())
+
+    return autoencoder
+
+
 
 def cnn_autoencoder_2(image_dim,verbose=1):
     #encoder
@@ -60,6 +113,58 @@ def cnn_autoencoder_2(image_dim,verbose=1):
     conv5 = BatchNormalization()(conv5)
     up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
     crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
+
+    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
+
+    autoencoder = Model(input_img, decoded)
+
+    if verbose > 0:
+        print(autoencoder.summary())
+
+    return autoencoder
+
+def cnn_autoencoder_3(image_dim,verbose=1):
+    #encoder
+    #input = 28 x 28 x 1 (wide and thin)
+
+    padSize = int(image_dim[0] % 4 / 2)
+
+    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+
+    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+
+    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
+    conv1 = BatchNormalization()(conv1)
+    conv2 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
+    conv2 = BatchNormalization()(conv2)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv2) #14 x 14 x 32
+    conv3 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
+    conv3 = BatchNormalization()(conv3)
+    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3)
+    conv4 = BatchNormalization()(conv4)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv4) #7 x 7 x 64
+    conv5 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
+    conv5 = BatchNormalization()(conv5)
+    conv6 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv5)
+    conv6 = BatchNormalization()(conv6)
+
+
+    #decoder
+    conv7 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv6) #7 x 7 x 128
+    conv7 = BatchNormalization()(conv7)
+    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv7)
+    conv8 = BatchNormalization()(conv8)
+    up1 = UpSampling2D((2,2))(conv8) # 14 x 14 x 128
+    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
+    conv9 = BatchNormalization()(conv9)
+    conv10 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
+    conv10 = BatchNormalization()(conv10)
+    conv11 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv10)
+    conv11 = BatchNormalization()(conv11)
+    up2 = UpSampling2D((2,2))(conv11) # 28 x 28 x 64
+    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(up2)
+    conv12 = BatchNormalization()(conv12)
+    crop1 = Cropping2D(cropping=(padSize,padSize))(conv12)
 
     decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
 
@@ -241,6 +346,10 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
        model = cnn_autoencoder(image_dim)
     elif model_type == 'cnn-autoencoder-2':
        model = cnn_autoencoder_2(image_dim)
+    elif model_type == 'cnn-autoencoder-3':
+       model = cnn_autoencoder_3(image_dim)
+    elif model_type == 'cnn-autoencoder-4':
+       model = cnn_autoencoder_4(image_dim)
     elif model_type == 'base':
         model = base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output, verbose=1)
 
@@ -256,6 +365,14 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     #create checkpoint callback for model
     checkpoint = ModelCheckpoint(checkpoint_fn, monitor='val_loss', verbose=0, save_best_only=True, mode='max')
+
+    if nGPU == 0:
+        steps_per_epoch = batch_size
+        nGPU = 1
+    elif nGPU == 1:
+        steps_per_epoch = len(X_train) // (batch_size*16)
+    else:
+        steps_per_epoch = len(X_train) // (batch_size * nGPU)
 
     #compile the model
     #model.compile(loss = , optimizer=ada, metrics=[metric])
@@ -286,7 +403,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                   X_train,
                   batch_size = batch_size*nGPU),
                   validation_data= (X_validate, X_validate),
-                  steps_per_epoch= len(X_train) // (batch_size * nGPU),
+                  steps_per_epoch= steps_per_epoch,
                   epochs= nb_epoch,
                   callbacks= [checkpoint])
                   #callbacks= [TensorBoard(log_dir='/home/spinney/scripts/python/MRI_Deep_Learning/logs/autoencoder')])
@@ -297,7 +414,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                      Y_train,
                      batch_size=batch_size * nGPU),
                     validation_data=(X_validate, X_validate),
-                    steps_per_epoch=len(X_train) // (batch_size * nGPU),
+                    steps_per_epoch=steps_per_epoch,
                     epochs=nb_epoch,
                     callbacks=[checkpoint])
     #

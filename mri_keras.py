@@ -1,6 +1,6 @@
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+#os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 from prepare_data import  *
 from helpers import *
@@ -69,7 +69,11 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
     nlabels=len(np.unique(Y_validate)) #Number of unique labels in the labeled images
 
     if nGPU <= 1:
-        print("[INFO] training with 1 GPU...")
+        if nGPU == 0:
+            print("[INFO] training with 1 CPU...")
+        else:
+            print("[INFO] training with 1 GPU...")
+
         model = build_model(data["image_dim"], nlabels, nK, n_dil, kernel_size, drop_out, model_type=model_type,
                             activation_hidden=activation_hidden, activation_output=activation_output, loss=loss,
                             verbose=0)
@@ -85,13 +89,14 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
             model = build_model(data["image_dim"], nlabels, nK, n_dil, kernel_size, drop_out, model_type=model_type,
                                 activation_hidden=activation_hidden, activation_output=activation_output, loss=loss,
                                 verbose=0)
+
         model = multi_gpu_model(model, gpus=nGPU)
 
 
-    memRequired = get_model_memory_usage(batch_size, model)
-    if memRequired > 12.0:
-        print("Required memory: {}\nAvailable memory: {}\nTry reducing the batch size.".format(memRequired,12.0))
-        exit(0)
+    #memRequired = get_model_memory_usage(batch_size, model)
+    #if memRequired > 12.0:
+    #    print("Required memory: {}\nAvailable memory: {}\nTry reducing the batch size.".format(memRequired,12.0))
+     #   exit(0)
 
 
     ### 2) Train network on data

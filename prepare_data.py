@@ -101,7 +101,7 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
     if not os.path.exists(hdf5_path):
         data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
     else:
-        data["image_dim"] = [256,256]
+        data["image_dim"] = [198,198]
 
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))

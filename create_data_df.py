@@ -18,8 +18,9 @@ def extractSubjName(path):
 def renameSubject(code):
     if code == len(code)*' ':
         return ''
-    num = re.findall(r'_\d*', code)
-    return 'sub-' + "".join(num)[1:]
+    #num = re.findall(r'_\d*', code)
+    #return 'sub-' + "".join(num)[1:]
+    return 'sub-' + code
 
 # TODO: Remove the hardcoded seperator
 def create_labels(labelName, mainDir, covPath, idColumn):
@@ -36,7 +37,7 @@ def create_labels(labelName, mainDir, covPath, idColumn):
         covDf = pd.read_csv(os.path.join(mainDir,covPath),
                             usecols=[idColumn,labelName],
                             converters={idColumn: lambda x: str(x)},
-                            sep=' ')
+                            sep=',')
 
     except ValueError:
         covDf = pd.read_csv(os.path.join(mainDir,covPath),
