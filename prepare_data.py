@@ -8,6 +8,19 @@ import h5py
 from helpers import *
 from image_transformations import *
 
+def evaluate_class_distribution(imagesDf):
+    categories = ['train','validate','test']
+    grp = imagesDf.groupby(by=['labels', 'category'])
+    ratios = {k:{} for k in categories}
+    for c in categories:
+        n1 = grp.get_group((0,c)).shape[0]
+        n2 = grp.get_group((1, c)).shape[0]
+        ratios[c] = [n1,n2]
+
+    print(pd.DataFrame(ratios))
+
+
+
 # TODO: validate train test split for equal label repartition
 def attribute_category(imagesDf, category, labelName, ratio, verbose=1):
     ''' This function distributes each subject in a 'train' or 'test' category.
@@ -96,12 +109,14 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
     attribute_category(imagesDf, 'validate','labels', ratios[1])
     imagesDf.category.loc[ imagesDf.category == "unknown" ] = "test"
 
+    evaluate_class_distribution(imagesDf)
+
     # Create npy arrays with dataset split
     hdf5_path = os.path.join(mainDir, 'datasetSplit.hdf5')
     if not os.path.exists(hdf5_path):
         data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
     else:
-        data["image_dim"] = [198,198]
+        data["image_dim"] = [256,256]
 
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))
@@ -209,12 +224,16 @@ def dataConfiguration(X_train, X_validate,X_test, Y_train, Y_validate, Y_test, m
         X_train, _ = quickShuffle(X_train)
         X_validate, _ = quickShuffle(X_validate)
 
-    if model_type == 'base':
+    if model_type == 'cnn-binary-classifier-2':
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
         X_train, Y_train = shufflePair(X_train, Y_train)
         X_validate, Y_validate = shufflePair(X_validate, Y_validate)
         X_test, Y_test = shufflePair(X_test, Y_test)
+
+        X_train = X_train.astype('float32')
+        X_validate = X_validate.astype('float32')
+        X_test = X_test.astype('float32')
 
 
     return X_train, X_validate, X_test, Y_train, Y_validate, Y_test

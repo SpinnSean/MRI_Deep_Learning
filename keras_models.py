@@ -4,7 +4,7 @@ from keras.layers import Input, Add, Multiply, Dense, MaxPooling3D, BatchNormali
 from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Convolution2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D, UpSampling2D, Cropping2D
-from keras.layers.core import Dropout
+from keras.layers.core import Dropout, Flatten
 from keras.layers import LeakyReLU, MaxPooling2D, concatenate, Conv2DTranspose, Concatenate
 from keras.activations import relu
 from keras.callbacks import History, ModelCheckpoint, TensorBoard
@@ -18,6 +18,119 @@ import numpy as np
 from math import sqrt
 from helpers import *
 import json
+
+
+def cnn_binary_classifier_2(image_dim,verbose=1):
+
+    model = Sequential()
+    model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(image_dim[0], image_dim[1], 1)))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Conv2D(96, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Conv2D(32, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.2))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dropout(0.3))
+    model.add(Dense(2, activation='softmax'))
+
+    if verbose > 0:
+        print(model.summary())
+
+    return model
+
+
+
+def cnn_binary_classifier(image_dim,verbose=1):
+    #encoder
+    #input = 28 x 28 x 1 (wide and thin)
+
+    padSize = int(image_dim[0] % 4 / 2)
+
+    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+
+    #pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+
+    conv1 = Conv2D(8, (5, 5), activation='relu', padding='same')(input_img)
+    conv1 = BatchNormalization()(conv1)
+    conv1 = Conv2D(16, (5, 5), activation='relu', padding='same')(conv1) #28 x 28 x 32
+    conv1 = BatchNormalization()(conv1)
+    conv2 = Conv2D(32, (5, 5), activation='relu', padding='same')(conv1) #14 x 14 x 64
+    conv2 = BatchNormalization()(conv2)
+    conv3 = Conv2D(64, (5, 5), activation='relu', padding='same')(conv2) #7 x 7 x 128 (small and thick)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Conv2D(128, (5, 5), activation='relu', padding='same')(conv3)
+    conv3 = BatchNormalization()(conv3)
+
+    drop1 = Dropout(0.2)(conv3)
+    flat = Flatten()(drop1)
+    dense1 = Dense(128, activation='relu')(flat)
+    drop2 = Dropout(0.2)(dense1)
+    dense2 = Dense(64, activation='relu')(drop2)
+    # model.add(Dropout(0.3))
+    dense3 = Dense(2, activation='softmax')(dense2)
+
+    classifier = Model(input_img, dense3)
+
+    if verbose > 0:
+        print(classifier.summary())
+
+    return classifier
+
+
+
+
+def cnn_autoencoder_5(image_dim,verbose=1):
+    #encoder
+    #input = 28 x 28 x 1 (wide and thin)
+
+    padSize = int(image_dim[0] % 4 / 2)
+
+    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+
+    #pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
+
+    conv1 = Conv2D(8, (5, 5), activation='relu', padding='same')(input_img)
+    conv1 = BatchNormalization()(conv1)
+    conv1 = Conv2D(16, (5, 5), activation='relu', padding='same')(conv1) #28 x 28 x 32
+    conv1 = BatchNormalization()(conv1)
+    conv2 = Conv2D(32, (5, 5), activation='relu', padding='same')(conv1) #14 x 14 x 64
+    conv2 = BatchNormalization()(conv2)
+    conv3 = Conv2D(64, (5, 5), activation='relu', padding='same')(conv2) #7 x 7 x 128 (small and thick)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Conv2D(128, (5, 5), activation='relu', padding='same')(conv3)
+    conv3 = BatchNormalization()(conv3)
+
+
+    #decoder
+    conv4 = Conv2D(64, (5, 5), activation='relu', padding='same')(conv3) #7 x 7 x 128
+    conv4 = BatchNormalization()(conv4)
+    conv4 = Conv2D(32, (5, 5), activation='relu', padding='same')(conv4)
+    conv4 = BatchNormalization()(conv4)
+    conv5 = Conv2D(16, (5, 5), activation='relu', padding='same')(conv4) # 14 x 14 x 64
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Conv2D(8, (5, 5), activation='relu', padding='same')(conv5)
+    conv5 = BatchNormalization()(conv5)
+
+    decoded = Conv2D(1, (5, 5), activation='sigmoid', padding='same')(conv5) # 28 x 28 x 1
+
+    autoencoder = Model(input_img, decoded)
+
+    if verbose > 0:
+        print(autoencoder.summary())
+
+    return autoencoder
+
 
 def cnn_autoencoder_4(image_dim,verbose=1):
     #encoder
@@ -350,12 +463,18 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
        model = cnn_autoencoder_3(image_dim)
     elif model_type == 'cnn-autoencoder-4':
        model = cnn_autoencoder_4(image_dim)
+    elif model_type == 'cnn-autoencoder-5':
+       model = cnn_autoencoder_5(image_dim)
+    elif model_type == 'cnn-binary-classifier':
+       model = cnn_binary_classifier(image_dim)
+    elif model_type == 'cnn-binary-classifier-2':
+       model = cnn_binary_classifier_2(image_dim)
     elif model_type == 'base':
         model = base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output, verbose=1)
 
     return model
 
-def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=1, metric="accuracy", lr=0.005, nGPU=1):
+def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_train,  Y_train, X_validate, Y_validate,  nb_epoch, batch_size, nlabels, loss, verbose=0, metric="accuracy", lr=0.005, nGPU=1):
 
     #set compiler
     ada = keras.optimizers.Adam(0.0001)
@@ -382,9 +501,9 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
         model.compile(loss=loss, optimizer=Adam())
 
-    elif 'base' in model_type:
+    elif 'classifier' in model_type:
 
-        model.compile(loss=loss, optimizer=Adam())
+        model.compile(loss=loss, optimizer=Adam(), metrics=[metric])
 
 
     print("Training size: {}\n Validation size: {}\n".format(X_train.shape, X_validate.shape))
@@ -392,8 +511,8 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
     # train model
     # augmentation generator
     aug = ImageDataGenerator(rotation_range=10,
-                             width_shift_range=0.01,
-                             height_shift_range=0.01,
+                             #width_shift_range=0.01,
+                             #height_shift_range=0.01,
                              zoom_range=0.3,
                              fill_mode="nearest")
     #if nGPU > 1:
@@ -408,12 +527,12 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                   callbacks= [checkpoint])
                   #callbacks= [TensorBoard(log_dir='/home/spinney/scripts/python/MRI_Deep_Learning/logs/autoencoder')])
 
-    elif 'base' in model_type:
+    elif 'classifier' in model_type:
         history = model.fit_generator(
             aug.flow(X_train,
                      Y_train,
                      batch_size=batch_size * nGPU),
-                    validation_data=(X_validate, X_validate),
+                    validation_data=(X_validate, Y_validate),
                     steps_per_epoch=steps_per_epoch,
                     epochs=nb_epoch,
                     callbacks=[checkpoint])

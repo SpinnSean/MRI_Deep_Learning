@@ -50,7 +50,7 @@ def setup_dirs(target_dir="./"):
 
 
 
-def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=1, make_model_only=False,nGPU=1):
+def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, labelName, idColumn, covPath, ratios=[0.75,0.15], createPNGDataset=False, batch_size=2, nb_epoch=10, images_to_predict=None, clobber=False, model_name='model.hdf5',model_type='cnn-autoencoder', images_fn='images.csv',nK="16,32,64,128", n_dil=None, kernel_size=64, drop_out=0, loss='mse', activation_hidden="relu", activation_output="sigmoid", metric="categorical_accuracy", pad_base=0,  verbose=0, make_model_only=False,nGPU=1):
 
     setup_dirs(target_dir)
     #PNG_DIM=[256,256]
@@ -140,7 +140,7 @@ def mri_keras(main_dir, data_dir, report_dir, target_dir, input_str,  ext, label
                                          batch_size,
                                          nlabels,
                                          loss=loss,
-                                         verbose=1,
+                                         verbose=verbose,
                                          nGPU=nGPU)
 
         print("Fitting over.")
