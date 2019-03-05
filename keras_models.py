@@ -20,67 +20,58 @@ from helpers import *
 import json
 
 
-def cnn_binary_classifier_2(image_dim,verbose=1):
+def encoder(input_img,k):
 
-    model = Sequential()
-    model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(image_dim[0], image_dim[1], 1)))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Conv2D(96, kernel_size=(3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Conv2D(32, kernel_size=(3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.2))
-    model.add(Flatten())
-    model.add(Dense(128, activation='relu'))
-    model.add(Dropout(0.3))
-    model.add(Dense(2, activation='softmax'))
+    # pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
 
-    if verbose > 0:
-        print(model.summary())
+    conv1 = Conv2D(32, (k, k), activation='relu', padding='same')(input_img)
+    # conv1 = BatchNormalization()(conv1)
+    conv1 = Conv2D(64, (k, k), activation='relu', padding='same')(conv1)  # 28 x 28 x 32
+    # conv1 = BatchNormalization()(conv1)
+    conv2 = Conv2D(128, (k, k), activation='relu', padding='same')(conv1)  # 14 x 14 x 64
+    # conv2 = BatchNormalization()(conv2)
+    conv3 = Conv2D(128, (k, k), activation='relu', padding='same')(conv2)  # 7 x 7 x 128 (small and thick)
+    # conv3 = BatchNormalization()(conv3)
+    conv3 = Conv2D(256, (k, k), activation='relu', padding='same')(conv3)
+    # conv3 = BatchNormalization()(conv3)
 
-    return model
+    return conv3
 
+def decoder(conv3,k):
+    # decoder
+    conv4 = Conv2D(128, (k, k), activation='relu', padding='same')(conv3)  # 7 x 7 x 128
+    # conv4 = BatchNormalization()(conv4)
+    conv4 = Conv2D(64, (k, k), activation='relu', padding='same')(conv4)
+    # conv4 = BatchNormalization()(conv4)
+    conv5 = Conv2D(32, (k, k), activation='relu', padding='same')(conv4)  # 14 x 14 x 64
+    # conv5 = BatchNormalization()(convk)
+    conv5 = Conv2D(16, (k, k), activation='relu', padding='same')(conv5)
+    # conv5 = BatchNormalization()(conv5)
 
+    decoded = Conv2D(1, (k, k), activation='linear', padding='same')(conv5)  # 28 x 28 x 1
 
-def cnn_binary_classifier(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
+    return decoded
 
-    padSize = int(image_dim[0] % 4 / 2)
-
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-
-    #pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
-    conv1 = Conv2D(8, (5, 5), activation='relu', padding='same')(input_img)
-    conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(16, (5, 5), activation='relu', padding='same')(conv1) #28 x 28 x 32
-    conv1 = BatchNormalization()(conv1)
-    conv2 = Conv2D(32, (5, 5), activation='relu', padding='same')(conv1) #14 x 14 x 64
-    conv2 = BatchNormalization()(conv2)
-    conv3 = Conv2D(64, (5, 5), activation='relu', padding='same')(conv2) #7 x 7 x 128 (small and thick)
-    conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(128, (5, 5), activation='relu', padding='same')(conv3)
-    conv3 = BatchNormalization()(conv3)
-
-    drop1 = Dropout(0.2)(conv3)
+def fc(encoded):
+    drop1 = Dropout(0.2)(encoded)
     flat = Flatten()(drop1)
     dense1 = Dense(128, activation='relu')(flat)
     drop2 = Dropout(0.2)(dense1)
     dense2 = Dense(64, activation='relu')(drop2)
     # model.add(Dropout(0.3))
-    dense3 = Dense(2, activation='softmax')(dense2)
+    out = Dense(2, activation='softmax')(dense2)
 
-    classifier = Model(input_img, dense3)
+    return out
+
+def cnn_binary_classifier(image_dim,verbose=1):
+
+
+    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+    k = 3
+    encoded = encoder(input_img,k)
+    out = fc(encoded)
+
+    classifier = Model(input_img, out)
 
     if verbose > 0:
         print(classifier.summary())
@@ -98,229 +89,8 @@ def cnn_autoencoder_6(image_dim,verbose=1):
     k = 3
     #pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
 
-    conv1 = Conv2D(32, (k, k), activation='relu', padding='same')(input_img)
-    #conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(64, (k, k), activation='relu', padding='same')(conv1) #28 x 28 x 32
-    #conv1 = BatchNormalization()(conv1)
-    conv2 = Conv2D(128, (k, k), activation='relu', padding='same')(conv1) #14 x 14 x 64
-    #conv2 = BatchNormalization()(conv2)
-    conv3 = Conv2D(128, (k, k), activation='relu', padding='same')(conv2) #7 x 7 x 128 (small and thick)
-    #conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(256, (k, k), activation='relu', padding='same')(conv3)
-    #conv3 = BatchNormalization()(conv3)
-
-
-    #decoder
-    conv4 = Conv2D(128, (k, k), activation='relu', padding='same')(conv3) #7 x 7 x 128
-    #conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(64, (k, k), activation='relu', padding='same')(conv4)
-    #conv4 = BatchNormalization()(conv4)
-    conv5 = Conv2D(32, (k, k), activation='relu', padding='same')(conv4) # 14 x 14 x 64
-    #conv5 = BatchNormalization()(convk)
-    conv5 = Conv2D(16, (k, k), activation='relu', padding='same')(conv5)
-    #conv5 = BatchNormalization()(conv5)
-
-    decoded = Conv2D(1, (k, k), activation='linear', padding='same')(conv5) # 28 x 28 x 1
-
-    autoencoder = Model(input_img, decoded)
-
-    if verbose > 0:
-        print(autoencoder.summary())
-
-    return autoencoder
-
-
-
-def cnn_autoencoder_5(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
-
-    padSize = int(image_dim[0] % 4 / 2)
-
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-    k = 3
-    #pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
-    conv1 = Conv2D(8, (k, k), activation='relu', padding='same')(input_img)
-    #conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(16, (k, k), activation='relu', padding='same')(conv1) #28 x 28 x 32
-    #conv1 = BatchNormalization()(conv1)
-    conv2 = Conv2D(32, (k, k), activation='relu', padding='same')(conv1) #14 x 14 x 64
-    #conv2 = BatchNormalization()(conv2)
-    conv3 = Conv2D(128, (k, k), activation='relu', padding='same')(conv2) #7 x 7 x 128 (small and thick)
-    #conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(128, (k, k), activation='relu', padding='same')(conv3)
-    #conv3 = BatchNormalization()(conv3)
-
-
-    #decoder
-    conv4 = Conv2D(64, (k, k), activation='relu', padding='same')(conv3) #7 x 7 x 128
-    #conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(32, (k, k), activation='relu', padding='same')(conv4)
-    #conv4 = BatchNormalization()(conv4)
-    conv5 = Conv2D(16, (k, k), activation='relu', padding='same')(conv4) # 14 x 14 x 64
-    #conv5 = BatchNormalization()(convk)
-    conv5 = Conv2D(8, (k, k), activation='relu', padding='same')(conv5)
-    #conv5 = BatchNormalization()(conv5)
-
-    decoded = Conv2D(1, (k, k), activation='linear', padding='same')(conv5) # 28 x 28 x 1
-
-    autoencoder = Model(input_img, decoded)
-
-    if verbose > 0:
-        print(autoencoder.summary())
-
-    return autoencoder
-
-
-def cnn_autoencoder_4(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
-
-    padSize = int(image_dim[0] % 4 / 2)
-
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-
-    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
-    #conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv1)
-    #conv1 = BatchNormalization()(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
-    #conv2 = BatchNormalization()(conv2)
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
-    #conv2 = BatchNormalization()(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
-    #conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv3)
-    #conv3 = BatchNormalization()(conv3)
-
-
-    #decoder
-    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
-    #conv4 = BatchNormalization()(conv4)
-    conv5 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
-    #conv5 = BatchNormalization()(conv5)
-    up1 = UpSampling2D((2,2))(conv5) # 14 x 14 x 128
-    conv6 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
-    #conv6 = BatchNormalization()(conv6)
-    conv7 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv6)
-    #conv7 = BatchNormalization()(conv7)
-    conv8 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv7)
-    #conv8 = BatchNormalization()(conv8)
-    up2 = UpSampling2D((2,2))(conv8) # 28 x 28 x 64
-    crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
-    conv9 = Conv2D(64, (3, 3), activation='relu', padding='same')(crop1)
-    conv9 = BatchNormalization()(conv9)
-
-    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(conv9) # 28 x 28 x 1
-
-    autoencoder = Model(input_img, decoded)
-
-    if verbose > 0:
-        print(autoencoder.summary())
-
-    return autoencoder
-
-
-
-def cnn_autoencoder_2(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
-
-    padSize = int(image_dim[0] % 4 / 2)
-
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-
-    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
-    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
-    conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv1)
-    conv1 = BatchNormalization()(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
-    conv2 = BatchNormalization()(conv2)
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
-    conv2 = BatchNormalization()(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
-    conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv3)
-    conv3 = BatchNormalization()(conv3)
-
-
-    #decoder
-    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
-    conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
-    conv4 = BatchNormalization()(conv4)
-    up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
-    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
-    conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
-    conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
-    conv5 = BatchNormalization()(conv5)
-    up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
-    crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
-
-    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
-
-    autoencoder = Model(input_img, decoded)
-
-    if verbose > 0:
-        print(autoencoder.summary())
-
-    return autoencoder
-
-def cnn_autoencoder_3(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
-
-    padSize = int(image_dim[0] % 4 / 2)
-
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-
-    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
-    conv1 = BatchNormalization()(conv1)
-    conv2 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
-    conv2 = BatchNormalization()(conv2)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv2) #14 x 14 x 32
-    conv3 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
-    conv3 = BatchNormalization()(conv3)
-    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3)
-    conv4 = BatchNormalization()(conv4)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv4) #7 x 7 x 64
-    conv5 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
-    conv5 = BatchNormalization()(conv5)
-    conv6 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv5)
-    conv6 = BatchNormalization()(conv6)
-
-
-    #decoder
-    conv7 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv6) #7 x 7 x 128
-    conv7 = BatchNormalization()(conv7)
-    conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv7)
-    conv8 = BatchNormalization()(conv8)
-    up1 = UpSampling2D((2,2))(conv8) # 14 x 14 x 128
-    conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
-    conv9 = BatchNormalization()(conv9)
-    conv10 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
-    conv10 = BatchNormalization()(conv10)
-    conv11 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv10)
-    conv11 = BatchNormalization()(conv11)
-    up2 = UpSampling2D((2,2))(conv11) # 28 x 28 x 64
-    conv12 = Conv2D(32, (3, 3), activation='relu', padding='same')(up2)
-    conv12 = BatchNormalization()(conv12)
-    crop1 = Cropping2D(cropping=(padSize,padSize))(conv12)
-
-    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
+    encoded = encoder(input_img,k)
+    decoded = decoder(encoded,k)
 
     autoencoder = Model(input_img, decoded)
 

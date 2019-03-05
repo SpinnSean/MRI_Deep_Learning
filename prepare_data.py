@@ -224,7 +224,7 @@ def dataConfiguration(X_train, X_validate,X_test, Y_train, Y_validate, Y_test, m
         X_train, _ = quickShuffle(X_train)
         X_validate, _ = quickShuffle(X_validate)
 
-    if model_type == 'cnn-binary-classifier-2':
+    if model_type == 'cnn-binary-classifier':
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
         X_train, Y_train = shufflePair(X_train, Y_train)
