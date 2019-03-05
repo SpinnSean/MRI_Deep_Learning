@@ -22,17 +22,15 @@ import json
 
 def encoder(input_img,k):
 
-    # pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
     conv1 = Conv2D(32, (k, k), activation='relu', padding='same')(input_img)
     # conv1 = BatchNormalization()(conv1)
     conv1 = Conv2D(64, (k, k), activation='relu', padding='same')(conv1)  # 28 x 28 x 32
     # conv1 = BatchNormalization()(conv1)
     conv2 = Conv2D(128, (k, k), activation='relu', padding='same')(conv1)  # 14 x 14 x 64
     # conv2 = BatchNormalization()(conv2)
-    conv3 = Conv2D(128, (k, k), activation='relu', padding='same')(conv2)  # 7 x 7 x 128 (small and thick)
+    conv3 = Conv2D(256, (k, k), activation='relu', padding='same')(conv2)  # 7 x 7 x 128 (small and thick)
     # conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(256, (k, k), activation='relu', padding='same')(conv3)
+   # conv3 = Conv2D(256, (k, k), activation='relu', padding='same')(conv3)
     # conv3 = BatchNormalization()(conv3)
 
     return conv3
@@ -312,7 +310,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     if 'autoencoder' in model_type:
 
-        model.compile(loss=loss, optimizer=Adam(0.01))
+        model.compile(loss=loss, optimizer=Adam(0.001))
 
     elif 'classifier' in model_type:
 
