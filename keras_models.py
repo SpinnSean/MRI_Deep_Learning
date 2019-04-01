@@ -56,13 +56,15 @@ def fc(encoded):
     dense1 = Dense(128, activation='relu')(flat)
     drop2 = Dropout(0.2)(dense1)
     dense2 = Dense(64, activation='relu')(drop2)
-    # model.add(Dropout(0.3))
-    out = Dense(2, activation='softmax')(dense2)
+    drop3 = Dropout(0.2)(dense2)
+    out = Dense(2, activation='softmax')(drop3)
 
     return out
 
 def cnn_binary_classifier(image_dim,verbose=1):
 
+    if True:
+        autoencoder = load_model('/home/spinney/scripts/python/MRI_Deep_Learning/processed/model/ac_NVY2.hdf5')
 
     input_img = Input(shape=(image_dim[0], image_dim[1], 1))
     k = 3
@@ -71,21 +73,25 @@ def cnn_binary_classifier(image_dim,verbose=1):
 
     classifier = Model(input_img, out)
 
+    for l1, l2 in zip(classifier.layers[:5], autoencoder.layers[:5]):
+        l1.set_weights(l2.get_weights())
+
+    for layer in classifier.layers[:5]:
+        layer.trainable = False
+
+
     if verbose > 0:
         print(classifier.summary())
 
     return classifier
 
 
-def cnn_autoencoder_6(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
+def cnn_autoencoder(image_dim,verbose=1):
 
     padSize = int(image_dim[0] % 4 / 2)
 
     input_img = Input(shape=(image_dim[0], image_dim[1], 1))
     k = 3
-    #pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
 
     encoded = encoder(input_img,k)
     decoded = decoder(encoded,k)
@@ -98,190 +104,13 @@ def cnn_autoencoder_6(image_dim,verbose=1):
     return autoencoder
 
 
-def cnn_autoencoder(image_dim,verbose=1):
-    #encoder
-    #input = 28 x 28 x 1 (wide and thin)
-
-    padSize = int(image_dim[0] % 4 / 2)
-
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-
-    pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
-    conv1 = BatchNormalization()(conv1)
-    conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
-    conv1 = BatchNormalization()(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
-    conv2 = BatchNormalization()(conv2)
-    conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
-    conv2 = BatchNormalization()(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
-    conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
-    conv3 = BatchNormalization()(conv3)
-    conv3 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv3)
-    conv3 = BatchNormalization()(conv3)
-
-
-    #decoder
-    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
-    conv4 = BatchNormalization()(conv4)
-    conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
-    conv4 = BatchNormalization()(conv4)
-    up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
-    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
-    conv5 = BatchNormalization()(conv5)
-    conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
-    conv5 = BatchNormalization()(conv5)
-    up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
-    crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
-
-    decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
-
-    autoencoder = Model(input_img, decoded)
-
-    if verbose > 0:
-        print(autoencoder.summary())
-
-    return autoencoder
-
-#
-# # TODO: This CNN requires input layer to be div. by 4 because 2 maxpool layers
-# def cnn_autoencoder(image_dim,verbose=1):
-#     #encoder
-#     #input = 28 x 28 x 1 (wide and thin)
-#
-#     padSize = int(image_dim[0] % 4 / 2)
-#
-#     input_img = Input(shape=(image_dim[0], image_dim[1], 1))
-#
-#     pad1 = ZeroPadding2D(padding=(padSize,padSize))(input_img)
-#
-#     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(pad1) #28 x 28 x 32
-#     conv1 = BatchNormalization()(conv1)
-#     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
-#     conv1 = BatchNormalization()(conv1)
-#     pool1 = MaxPooling2D(pool_size=(2, 2))(conv1) #14 x 14 x 32
-#     conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1) #14 x 14 x 64
-#     conv2 = BatchNormalization()(conv2)
-#     conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
-#     conv2 = BatchNormalization()(conv2)
-#     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2) #7 x 7 x 64
-#     conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2) #7 x 7 x 128 (small and thick)
-#     conv3 = BatchNormalization()(conv3)
-#     conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
-#     conv3 = BatchNormalization()(conv3)
-#
-#
-#     #decoder
-#     conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv3) #7 x 7 x 128
-#     conv4 = BatchNormalization()(conv4)
-#     conv4 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv4)
-#     conv4 = BatchNormalization()(conv4)
-#     up1 = UpSampling2D((2,2))(conv4) # 14 x 14 x 128
-#     conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(up1) # 14 x 14 x 64
-#     conv5 = BatchNormalization()(conv5)
-#     conv5 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv5)
-#     conv5 = BatchNormalization()(conv5)
-#     up2 = UpSampling2D((2,2))(conv5) # 28 x 28 x 64
-#     crop1 = Cropping2D(cropping=(padSize,padSize))(up2)
-#
-#     decoded = Conv2D(1, (3, 3), activation='sigmoid', padding='same')(crop1) # 28 x 28 x 1
-#
-#     autoencoder = Model(input_img, decoded)
-#
-#     if verbose > 0:
-#         print(autoencoder.summary())
-#
-#     return autoencoder
-
-def sparse_autoencoder(inShape, kSize, activation, loss, l1Reg=0.05, verbose=1):
-
-    # this is the size of our encoded representations
-    #encoding_dim = kSize  # 32 floats -> compression of factor 8, assuming the input is 125 floats
-
-    # this is our input placeholder
-    input_img = Input(shape=(inShape[0],inShape[1],1))
-
-    # "encoded" is the encoded representation of the input
-    encoded = Dense(kSize, activation=activation,
-                    activity_regularizer=regularizers.l1(0.05))(input_img)
-
-    # "decoded" is the lossy reconstruction of the input
-    decoded = Dense(inShape, activation='sigmoid')(encoded)
-
-    # this model maps an input to its reconstruction
-    autoencoder = Model(input_img, decoded)
-
-    ## TOOLS: this model maps an input to its encoded representation
-    encoder = Model(input_img, encoded)
-
-    # create a placeholder for an encoded (kSize-dimensional) input
-    encoded_input = Input(shape=(kSize,))
-
-    # retrieve the last layer of the autoencoder model
-    decoder_layer = autoencoder.layers[-1]
-
-    # create the decoder model
-    decoder = Model(encoded_input, decoder_layer(encoded_input))
-    ##
-
-    if verbose > 0:
-        print(autoencoder.summary())
-
-    return autoencoder
-
-
-def base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output, verbose=1):
-    print("N Labels:", nlabels)
-    print("Drop out:", drop_out)
-    print("Number of Dilations:", n_dil)
-    print("Activation hidden:", activation_hidden)
-    print("Activation output:", activation_output)
-    nK = [int(i) for i in nK.split(",")]
-    if n_dil == None:
-        n_dil = [1] * len(nK)
-    else:
-        n_dil = [int(i) for i in n_dil.split(",")]
-
-    IN = CONV = Input(shape=(image_dim[0], image_dim[1], 1))
-    n_layers = int(len(nK))
-    kDim = [kernel_size] * n_layers
-
-    for i in range(n_layers):
-        print("Layer:", i, nK[i], kDim[i], n_dil[i])
-        CONV = Conv2D(nK[i], kernel_size=[kDim[i], kDim[i]], dilation_rate=(n_dil[i], n_dil[i]),
-                      activation=activation_hidden, padding='same')(CONV)
-        CONV = Dropout(drop_out)(CONV)
-
-    OUT = Conv2D(nlabels, kernel_size=[1, 1], activation=activation_output, padding='same')(CONV)
-    model = keras.models.Model(inputs=[IN], outputs=OUT)
-    if verbose > 0:
-        print(model.summary())
-
-    return model
 
 
 def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type, activation_hidden, activation_output, loss, verbose=0):
     if model_type == 'cnn-autoencoder':
        model = cnn_autoencoder(image_dim)
-    elif model_type == 'cnn-autoencoder-2':
-       model = cnn_autoencoder_2(image_dim)
-    elif model_type == 'cnn-autoencoder-3':
-       model = cnn_autoencoder_3(image_dim)
-    elif model_type == 'cnn-autoencoder-4':
-       model = cnn_autoencoder_4(image_dim)
-    elif model_type == 'cnn-autoencoder-5':
-       model = cnn_autoencoder_5(image_dim)
-    elif model_type == 'cnn-autoencoder-6':
-       model = cnn_autoencoder_6(image_dim)
     elif model_type == 'cnn-binary-classifier':
        model = cnn_binary_classifier(image_dim)
-    elif model_type == 'cnn-binary-classifier-2':
-       model = cnn_binary_classifier_2(image_dim)
-    elif model_type == 'base':
-        model = base_model(image_dim, nlabels, nK, n_dil, kernel_size, drop_out, activation_hidden, activation_output, verbose=1)
 
     return model
 
@@ -314,7 +143,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     elif 'classifier' in model_type:
 
-        model.compile(loss=loss, optimizer=Adam(), metrics=[metric])
+        model.compile(loss=loss, optimizer='rmsprop', metrics=[metric])
 
 
     print("Training size: {}\n Validation size: {}\n".format(X_train.shape, X_validate.shape))
@@ -324,7 +153,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
     aug = ImageDataGenerator(rotation_range=1,
                              #width_shift_range=0.01,
                              #height_shift_range=0.01,
-                             zoom_range=0.001,
+                             zoom_range=0,
                              fill_mode="nearest")
     #if nGPU > 1:
     if 'autoencoder' in model_type:
@@ -347,23 +176,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
                     steps_per_epoch=steps_per_epoch,
                     epochs=nb_epoch,
                     callbacks=[checkpoint])
-    #
-    # else:
-    #
-    #     history = model.fit_generator(
-    #         aug.flow(X_train,
-    #                  X_train,
-    #                  batch_size=batch_size * nGPU),
-    #                  validation_data=(X_validate, X_validate),
-    #                  steps_per_epoch=len(X_train) // (batch_size * nGPU),
-    #                  epochs=nb_epoch,
-    #                  callbacks=[checkpoint])
-        # history = model.fit(X_train,
-        #                     X_train,
-        #                     validation_data=(X_validate, X_validate),
-        #                     epochs=nb_epoch,
-        #                     batch_size=batch_size,
-        #                     callbacks=[checkpoint])
+
 
     # save model
     model.save(model_name)
@@ -372,30 +185,3 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
 
     return [model, history]
 
-
-# ############################### visualize recreation
-# # encode and decode some digits
-# # note that we take them from the *test* set
-# encoded_imgs = encoder.predict(x_test)
-# decoded_imgs = decoder.predict(encoded_imgs)
-#
-# # use Matplotlib (don't ask)
-# import matplotlib.pyplot as plt
-#
-# n = 10  # how many digits we will display
-# plt.figure(figsize=(20, 4))
-# for i in range(n):
-#     # display original
-#     ax = plt.subplot(2, n, i + 1)
-#     plt.imshow(x_test[i].reshape(28, 28))
-#     plt.gray()
-#     ax.get_xaxis().set_visible(False)
-#     ax.get_yaxis().set_visible(False)
-#
-#     # display reconstruction
-#     ax = plt.subplot(2, n, i + 1 + n)
-#     plt.imshow(decoded_imgs[i].reshape(28, 28))
-#     plt.gray()
-#     ax.get_xaxis().set_visible(False)
-#     ax.get_yaxis().set_visible(False)
-# plt.show()

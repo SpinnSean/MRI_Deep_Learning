@@ -20,8 +20,6 @@ def evaluate_class_distribution(imagesDf):
     print(pd.DataFrame(ratios))
 
 
-
-# TODO: validate train test split for equal label repartition
 def attribute_category(imagesDf, category, labelName, ratio, verbose=1):
     ''' This function distributes each subject in a 'train' or 'test' category.
     Args:
@@ -227,6 +225,7 @@ def dataConfiguration(X_train, X_validate,X_test, Y_train, Y_validate, Y_test, m
     if model_type == 'cnn-binary-classifier':
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
+
         X_train, Y_train = shufflePair(X_train, Y_train)
         X_validate, Y_validate = shufflePair(X_validate, Y_validate)
         X_test, Y_test = shufflePair(X_test, Y_test)

@@ -22,6 +22,14 @@ def renameSubject(code):
     return 'sub-' + "".join(num)[1:]
     #return 'sub-' + code
 
+# TODO: undo hardcoded modif for IMAGEN subject codes
+# def renameSubject(code):
+#     if code == len(code)*' ':
+#         return ''
+#     return f"sub-{int(code.split('.')[0]):012d}"
+#     #return 'sub-' + "".join()[1:]
+#     #return 'sub-' + code
+
 # TODO: Remove the hardcoded seperator
 def create_labels(labelName, mainDir, covPath, idColumn):
     """2
@@ -37,12 +45,12 @@ def create_labels(labelName, mainDir, covPath, idColumn):
         covDf = pd.read_csv(os.path.join(mainDir,covPath),
                             usecols=[idColumn,labelName],
                             converters={idColumn: lambda x: str(x)},
-                            sep=' ')
+                            sep=',')
 
     except ValueError:
         covDf = pd.read_csv(os.path.join(mainDir,covPath),
                             usecols=[idColumn,labelName],
-                            sep=';',
+                            sep=' ',
                             converters={idColumn: lambda x: str(x)},
                             #dtype='str'
                             )
@@ -89,6 +97,8 @@ def create_data_df(mainDir,data_dir, input_str, ext, labelName, covPath, idColum
     [labelsDf, labelDict] = create_labels(labelName, mainDir, covPath, idColumn)
     labelsDf.dropna(0, how='any', inplace=True)
     labelsDf[idColumn] = labelsDf[idColumn].map(renameSubject)
+
+
 
     dataDf = pd.merge(dataDf,labelsDf,on=[idColumn])
     dataDf = dataDf[[idColumn, labelName, 'paths']]

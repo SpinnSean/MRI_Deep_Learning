@@ -376,10 +376,5 @@ def multi_gpu_model(model, gpus):
     return Model(model.inputs, merged)
 
 
-def unitTest1():
-    path = '/Volumes/Storage/Work/Data/Neuroventure/sub-002/brainmask.nii'
-    images = nii2Numpy(path)
-    print(images.shape)
-
 
 
