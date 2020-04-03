@@ -114,7 +114,7 @@ def prepare_data(mainDir, data_dir, report_dir, input_str, ext, labelName, idCol
     if not os.path.exists(hdf5_path):
         data["image_dim"] = create_hd5(imagesDf,data,hdf5_path)
     else:
-        data["image_dim"] = [256,256]
+        data["image_dim"] = [256,256,256]
 
 
     fname = os.path.join(mainDir, 'sMRI_{}.csv'.format(labelName))
@@ -143,7 +143,7 @@ def create_hd5(imagesDf,data,hdf5_path,cropping=False):
     while sideLength % 2 != 0:
         sideLength+=1
 
-    data["image_dim"] = [sideLength, sideLength]
+    data["image_dim"] = [sideLength, sideLength, sideLength]
 
     train_shape = [x_train.shape[0]*numImages,sideLength,sideLength,1]
     val_shape = [x_val.shape[0]*numImages, sideLength, sideLength,1]
@@ -172,22 +172,22 @@ def create_hd5(imagesDf,data,hdf5_path,cropping=False):
         label = row.labels
         img3D = normalize(img3D)
         img3D.reshape(list(img3D.shape) + [1])
-        labels = np.full((img3D.shape[1], 1), label)
+        #labels = np.full((img3D.shape[1], 1), label)
         #labels = np.full(img3D.shape[1], label)
 
-        for j, img in enumerate(np.rollaxis(img3D,1)):
-            if img.sum() != 0: # do not ignore 0 sum slices
-                if cropping:
-                    img = crop(img)
-                    offset1 = sideLength - img.shape[0]
-                    offset2 = sideLength - img.shape[1]
-                    img= np.pad(img,((0,offset1),(0, offset2)), "constant")
+        # for j, img in enumerate(np.rollaxis(img3D,1)):
+        #     if img.sum() != 0: # do not ignore 0 sum slices
+        #         if cropping:
+        #             img = crop(img)
+        #             offset1 = sideLength - img.shape[0]
+        #             offset2 = sideLength - img.shape[1]
+        #             img= np.pad(img,((0,offset1),(0, offset2)), "constant")
+        #
+        #     img = np.reshape(img,(list(img.shape) + [1]))
 
-            img = np.reshape(img,(list(img.shape) + [1]))
-
-            hdf5_f[row.category + "_img"][(total_index[row.category])] = img
-            hdf5_f[row.category + "_labels"][(total_index[row.category])] = labels[j]
-            total_index[row.category] += 1
+        hdf5_f[row.category + "_img"][(total_index[row.category])] = img3D
+        hdf5_f[row.category + "_labels"][(total_index[row.category])] = label
+        total_index[row.category] += 1
 
     np.save(data['x_train_fn'] + '.npy', hdf5_f['train_img'])
     np.save(data['x_validate_fn'] + '.npy',hdf5_f['validate_img'])
@@ -199,7 +199,7 @@ def create_hd5(imagesDf,data,hdf5_path,cropping=False):
     hdf5_f.close()
     print("")
 
-    return [sideLength,sideLength]
+    return [sideLength,sideLength,sideLength]
 
 
 
@@ -223,6 +223,18 @@ def dataConfiguration(X_train, X_validate,X_test, Y_train, Y_validate, Y_test, m
         X_validate, _ = quickShuffle(X_validate)
 
     if model_type == 'cnn-binary-classifier':
+        Y_train = to_categorical(Y_train, num_classes=nlabels)
+        Y_validate = to_categorical(Y_validate, num_classes=nlabels)
+
+        X_train, Y_train = shufflePair(X_train, Y_train)
+        X_validate, Y_validate = shufflePair(X_validate, Y_validate)
+        X_test, Y_test = shufflePair(X_test, Y_test)
+
+        X_train = X_train.astype('float32')
+        X_validate = X_validate.astype('float32')
+        X_test = X_test.astype('float32')
+
+    if model_type == 'cnn_3D_classifier':
         Y_train = to_categorical(Y_train, num_classes=nlabels)
         Y_validate = to_categorical(Y_validate, num_classes=nlabels)
 

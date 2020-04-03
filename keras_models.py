@@ -5,7 +5,7 @@ from keras.layers.convolutional import Conv1D, Conv2D, Conv3D, Convolution2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import ZeroPadding3D, ZeroPadding2D, ZeroPadding1D, UpSampling2D, Cropping2D
 from keras.layers.core import Dropout, Flatten
-from keras.layers import LeakyReLU, MaxPooling2D, concatenate, Conv2DTranspose, Concatenate
+from keras.layers import LeakyReLU, MaxPooling2D, MaxPooling3D,concatenate, Conv2DTranspose, Concatenate
 from keras.activations import relu
 from keras.callbacks import History, ModelCheckpoint, TensorBoard
 from keras import regularizers
@@ -66,7 +66,7 @@ def cnn_binary_classifier(image_dim,verbose=1):
     if True:
         autoencoder = load_model('/home/spinney/scripts/python/MRI_Deep_Learning/processed/model/ac_NVY2.hdf5')
 
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+    input_img = Input(shape=(image_dim[0], image_dim[1], image_dim[2], 1))
     k = 3
     encoded = encoder(input_img,k)
     out = fc(encoded)
@@ -86,11 +86,26 @@ def cnn_binary_classifier(image_dim,verbose=1):
     return classifier
 
 
+def cnn_3D_classifier(image_dim,num_classes,verbose=1):
+
+    model = Sequential()
+    model.add(
+        Conv3D(16, kernel_size=(3, 3, 3), activation='relu', kernel_initializer='he_uniform', input_shape=(image_dim[0],image_dim[1],image_dim[2],1)))
+    model.add(MaxPooling3D(pool_size=(2, 2, 2),strides=(2,2,2)))
+    model.add(Conv3D(16, kernel_size=(3, 3, 3), activation='relu', kernel_initializer='he_uniform'))
+    model.add(MaxPooling3D(pool_size=(2, 2, 2),strides=(2,2,2)))
+    model.add(Conv3D(32, kernel_size=(3, 3, 3), activation='relu', kernel_initializer='he_uniform'))
+    model.add(MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2)))
+    model.add(Flatten())
+    model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
+    model.add(Dense(num_classes, activation='softmax'))
+    return model
+
 def cnn_autoencoder(image_dim,verbose=1):
 
     padSize = int(image_dim[0] % 4 / 2)
 
-    input_img = Input(shape=(image_dim[0], image_dim[1], 1))
+    input_img = Input(shape=(image_dim[0], image_dim[1], image_dim[2],1))
     k = 3
 
     encoded = encoder(input_img,k)
@@ -111,6 +126,8 @@ def build_model(image_dim, nlabels,nK, n_dil, kernel_size, drop_out, model_type,
        model = cnn_autoencoder(image_dim)
     elif model_type == 'cnn-binary-classifier':
        model = cnn_binary_classifier(image_dim)
+    elif model_type == 'cnn_3D_classifier':
+        model = cnn_3D_classifier(image_dim,nlabels)
 
     return model
 
@@ -153,7 +170,7 @@ def compile_and_run(target_dir, model, model_name, model_type, history_fn, X_tra
     aug = ImageDataGenerator(rotation_range=1,
                              #width_shift_range=0.01,
                              #height_shift_range=0.01,
-                             zoom_range=0,
+                             #zoom_range=0,
                              fill_mode="nearest")
     #if nGPU > 1:
     if 'autoencoder' in model_type:
